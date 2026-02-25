@@ -4,7 +4,6 @@ import os, sys
 import numpy as np
 from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
 from scipy.stats import zscore
-import helper_functions
 from rastermap import Rastermap, utils
 from scipy.stats import f_oneway, ttest_rel
 from statsmodels.stats.multitest import multipletests
@@ -13,20 +12,16 @@ from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 sys.path.insert(0, '/home/asyeda/Facemap/facemap')
 from facemap import pupil
 from facemap.pose import refine_pose
-import pupil_dark_helpers as pdh
 from itertools import combinations
 import pandas as pd
 import seaborn as sns
-import nonlinear_modelv3
 import matplotlib.cm as cm
 import cv2
 from facemap import utils
 from facemap.pose import refine_pose
 from sklearn.decomposition import PCA
 import matplotlib.gridspec as gridspec
-
-BASE_FOLDER = '/media/Atika/eye_movement_paper/pupil_analysis/'
-print(os.getcwd())
+import matplotlib.patheffects as patheffects
 
 LABEL_FONTSIZE = 12
 plt.rcParams['font.family'] = 'Arial'
@@ -38,6 +33,9 @@ plt.rcParams['ytick.labelsize'] = LABEL_FONTSIZE-2
 plt.rcParams['legend.fontsize'] = LABEL_FONTSIZE-2
 whisker_color = "#c92814ff"
 nose_color = "#6bfbbaff"
+
+# Set folder
+BASE_FOLDER = '/home/asyeda/stringerlab_dm11/eye-vs-face/'
 
 def plot():
     fig = plt.figure(figsize=(14, 7), dpi=300)
@@ -51,17 +49,16 @@ def plot():
     plot_saccade_direction_relations(gs[2:, :3])
     plot_prediction_traces(gs[2:, 3:5])
     plot_correlation_matrix(gs[2:, 5:])
-    #plot_keypoints_net(gs[2, :2], filepath=BASE_FOLDERkeypoints_net.png')
 
     # save figure
-    plt.savefig(f'{BASE_FOLDER}paper_figures/figure3.png', dpi=300, bbox_inches='tight')
+    plt.savefig(f'{BASE_FOLDER}figures/figure3.png', dpi=300, bbox_inches='tight')
     
     plt.show()
 
 def plot_mouse_face_keypoints(gs):
     ax = plt.subplot(gs)
-    keypoints_filepath = f'{BASE_FOLDER}dark_recordings/models/TX123_2024_06_20_2_full_FacemapPose.h5'
-    video_path = f'{BASE_FOLDER}dark_recordings/TX123_2024_06_20_2_full.mp4' 
+    keypoints_filepath = f'{BASE_FOLDER}data/TX123_2024_06_20_2_full_FacemapPose.h5'
+    video_path = f'{BASE_FOLDER}data/TX123_2024_06_20_2_full.mp4' 
 
     # Load the keypoints
     keypoints_data = utils.load_keypoints(refine_pose.BODYPARTS, keypoints_filepath)
@@ -75,8 +72,6 @@ def plot_mouse_face_keypoints(gs):
 
     # Plot the image
     grayscale_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    #brighter_frame = grayscale_frame *1.8  # Brighten by adding 50 to all pixel values
-    #brighter_frame = np.clip(brighter_frame, 0, 255)  # Ensure the values remain in the valid range [0, 255]
     # Convert the frame to grayscale
     grayscale_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     alpha = 2.  # Contrast multiplier
@@ -85,7 +80,7 @@ def plot_mouse_face_keypoints(gs):
     ax.imshow(contrast_frame, cmap='gray')
 
     # Add pupil circle on eye 
-    proc_filepath = f"{BASE_FOLDER}/dark_recordings/TX123_2024_06_20_1_full_proc.npy"
+    proc_filepath = f"{BASE_FOLDER}data/TX123_2024_06_20_1_full_proc.npy"
     proc_data = np.load(proc_filepath, allow_pickle=True).item()
     proc_frame_idx = frame_idx + 74081 # first block concatenated with second block
     frame = get_frame_by_index(video_path, frame_idx) 
@@ -176,8 +171,7 @@ def get_frame_by_index(video_path, frame_idx):
     return frame
 
 def plot_behavior_traces(gs):
-    dbs = pdh.get_light_static_info() 
-    base_folder = f'{BASE_FOLDER}light_recordings_static/'
+    dbs = get_light_static_info() 
     mname = 'TX140'
     xlim = [118000, 119000]  # x-axis limits for the plot
     whisker_color = "#c92814ff"
@@ -185,10 +179,7 @@ def plot_behavior_traces(gs):
     # Load the data
     datexp = [entry['datexp'] for entry in dbs if entry['mname'] == mname][0]
     # Load data
-    if mname in ['FXa10', 'FXa8', 'FXa9', 'FXa1']:  # gcamp8 recordings
-        _, _, _, _, _, _, _, npz_data = nonlinear_modelv3.load_data(f'/home/asyeda/nas113/Atika/{mname}/{datexp}/{1}', mname, datexp) # different base folder for these mice
-    else:
-        _, _, _, _, _, _, _, npz_data = nonlinear_modelv3.load_data(base_folder, mname, datexp)
+    _, _, _, _, _, _, _, npz_data = load_data(f"{BASE_FOLDER}data/", mname, datexp)
             
     pupil_x = npz_data['pupil_x_small']
     pupil_y = npz_data['pupil_y_small']
@@ -270,26 +261,25 @@ def remove_spines(ax):
     for loc, spine in ax.spines.items():
         spine.set_linewidth(0)
 
-
 def plot_saccade_frequency_during_whisking_sniffing(gs):
 
-    if os.path.exists(f'{BASE_FOLDER}saccade_orofacial_freq.npy'):
-        freq_data = np.load(f'{BASE_FOLDER}saccade_orofacial_freq.npy', allow_pickle=True).item()
+    if os.path.exists(f'{BASE_FOLDER}data/saccade_orofacial_freq.npy'):
+        freq_data = np.load(f'{BASE_FOLDER}data/saccade_orofacial_freq.npy', allow_pickle=True).item()
         whisking_saccade_freq = freq_data['whisking_saccade_freq']
         sniffing_saccade_freq = freq_data['sniffing_saccade_freq']
         saccade_freq = freq_data['saccade_freq']
     else:
         # Load databases
-        dark_dbs = pdh.carbachol_in_dark() 
-        light_random_dbs = pdh.get_light_random_info()
-        light_static_dbs = pdh.get_light_static_info()
+        dark_dbs = carbachol_in_dark() 
+        light_random_dbs = get_light_random_info()
+        light_static_dbs = get_light_static_info()
         base_folders = [
             f'{BASE_FOLDER}dark_recordings',
             f'{BASE_FOLDER}light_recordings_random',
             f'{BASE_FOLDER}light_recordings_static']
         dbs = [dark_dbs, light_random_dbs, light_static_dbs]
         category = ['dark', 'light_random', 'light_static']
-        saccade_data = np.load(f'{BASE_FOLDER}saccade_times.npy', allow_pickle=True).item()
+        saccade_data = np.load(f'{BASE_FOLDER}data/saccade_times.npy', allow_pickle=True).item()
 
         BODYPARTS = [
             "eye(back)",
@@ -322,10 +312,7 @@ def plot_saccade_frequency_during_whisking_sniffing(gs):
                 # Get datexp 
                 datexp = [entry['datexp'] for entry in db if entry['mname'] == mname][0]
                 # Load data
-                if mname in ['FXa10', 'FXa8', 'FXa9', 'FXa1']:  # gcamp8 recordings
-                    _, _, _, _, _, _, _, npz_data = nonlinear_modelv3.load_data(f'/home/asyeda/nas113/Atika/{mname}/{datexp}/{1}', mname, datexp) # different base folder for these mice
-                else:
-                    _, _, _, _, _, _, _, npz_data = nonlinear_modelv3.load_data(base_folder, mname, datexp)
+                _, _, _, _, _, _, _, npz_data = load_data(f'{BASE_FOLDER}data/', mname, datexp)
 
                 # segment the data into blocks
                 block_frames = npz_data['cam_frames_list']
@@ -424,7 +411,7 @@ def plot_saccade_frequency_during_whisking_sniffing(gs):
             'sniffing_saccade_freq': sniffing_saccade_freq,
             'saccade_freq': saccade_freq
         }
-        np.save(f'{BASE_FOLDER}saccade_orofacial_freq.npy', freq_data)
+        np.save(f'{BASE_FOLDER}data/saccade_orofacial_freq.npy', freq_data)
 
     ax = plt.subplot(gs)
     # Plot data points
@@ -508,7 +495,7 @@ def plot_correlation_matrix(gs):
 def plot_correlation_matrix(gs):
 
     # Load data
-    data_dir = 'bodypart_group_results_zscore.npz'
+    data_dir = f'{BASE_FOLDER}data/bodypart_group_results_zscore.npz'
     results = np.load(data_dir, allow_pickle=True)
     results_df = pd.DataFrame({key: results[key] for key in results.keys()})
 
@@ -605,7 +592,7 @@ def plot_saccade_durations(gs):
 
 def plot_psth(gs):
     # Load data
-    keypoints_psth_path = 'psth_whisker_nose_eye.npz'
+    keypoints_psth_path = f'{BASE_FOLDER}data/psth_whisker_nose_eye.npz'
     keypoints_psth_data = np.load(keypoints_psth_path, allow_pickle=True)
     mean_psth_whisker_all=keypoints_psth_data['mean_psth_whisker_all']
     mean_psth_nose_all=keypoints_psth_data['mean_psth_nose_all']
@@ -662,7 +649,7 @@ def plot_psth(gs):
     leg_colors = [whisker_color, nose_color]
     for l in leg.get_texts():
         l.set_color(leg_colors.pop(0))
-        l.set_path_effects([plt.matplotlib.patheffects.withStroke(linewidth=.2, foreground='k')])
+        l.set_path_effects([patheffects.withStroke(linewidth=.2, foreground='k')])
     for leg_line in leg.get_lines():
         leg_line.set_linewidth(0)
     # Calculate the center point (where vline should be at 0)
@@ -734,7 +721,7 @@ def plot_psth(gs):
     leg_colors = [whisker_color, nose_color]
     for l in leg.get_texts():
         l.set_color(leg_colors.pop(0))
-        l.set_path_effects([plt.matplotlib.patheffects.withStroke(linewidth=.2, foreground='k')])
+        l.set_path_effects([patheffects.withStroke(linewidth=.2, foreground='k')])
     for leg_line in leg.get_lines():
         leg_line.set_linewidth(0)
     # Add inset axis for significance annotations above the plot
@@ -779,7 +766,7 @@ def plot_psth(gs):
             y_base = y_pos  # update base for next bar
 
     # Load running psth data
-    running_psth_path = 'psth_running.npz'
+    running_psth_path = f'{BASE_FOLDER}data/psth_running.npz'
     running_psth_data = np.load(running_psth_path, allow_pickle=True)
     random_avg_running = running_psth_data['random_avg_running']/10
     pre_avg_running = running_psth_data['pre_avg_running']/10
@@ -1129,9 +1116,9 @@ def get_centroid_pc():
 
 def get_saccade_keypoints_relation():
 
-    dark_dbs = pdh.carbachol_in_dark() 
-    light_random_dbs = pdh.get_light_random_info()
-    light_static_dbs = pdh.get_light_static_info()
+    dark_dbs = carbachol_in_dark() 
+    light_random_dbs = get_light_random_info()
+    light_static_dbs = get_light_static_info()
     base_folders = [
         f'{BASE_FOLDER}dark_recordings',
         f'{BASE_FOLDER}light_recordings_random',
@@ -1140,7 +1127,7 @@ def get_saccade_keypoints_relation():
     category = ['dark', 'light_random', 'light_static']
 
 
-    data_dir = f'{BASE_FOLDER}saccade_times.npy'
+    data_dir = f'{BASE_FOLDER}data/saccade_times.npy'
     saccade_data = np.load(data_dir, allow_pickle=True).item()
 
     BODYPARTS = [
@@ -1275,14 +1262,14 @@ def get_saccade_keypoints_relation():
     df['nose_dy'] = df['nose_y_end'] - df['nose_y_start'] #df['nose_pc2_end'] - df['nose_pc2_start']
 
     # save df 
-    df.to_csv('saccade_keypoints_relation.csv', index=False, header=True, mode='w')
+    df.to_csv(f'{BASE_FOLDER}data/saccade_keypoints_relation.csv', index=False, header=True, mode='w')
 
     return df
 
 def plot_saccade_direction_relations(gs):
 
-    if os.path.exists('saccade_keypoints_relation.csv'):
-        df = pd.read_csv('saccade_keypoints_relation.csv')
+    if os.path.exists(f'{BASE_FOLDER}data/saccade_keypoints_relation.csv'):
+        df = pd.read_csv(f'{BASE_FOLDER}data/saccade_keypoints_relation.csv')
     else:
         df = get_saccade_keypoints_relation()
 
@@ -1499,7 +1486,7 @@ def check_mouse_saccade_direction_relations():
 
 def plot_prediction_traces(gs):
     # Load trace data to plot in fig.3 
-    data = np.load("pred_traces_zscore.npy", allow_pickle=True).item()
+    data = np.load(f"{BASE_FOLDER}data/pred_traces_zscore.npy", allow_pickle=True).item()
     whisker_color = "#c92814ff"
     nose_color = "#6bfbbaff"
     pupil_x_color = 'darkgreen'
@@ -1601,4 +1588,81 @@ def plot_prediction_traces(gs):
             width=0.015, color='k', alpha=0.7
         ))
 
-        
+def load_data(base_folder, mname, datexp):
+    npz_data = np.load(f"{base_folder}/{mname}_{datexp}_{1}.npz", allow_pickle=True)
+    spks = npz_data['spks']
+    xpos = npz_data['xpos']
+    ypos = npz_data['ypos']
+    tcams = npz_data['tcam'].item()
+    tneurals = npz_data['tneural'].item()
+    cumframes_neural = np.hstack(([0], np.cumsum(npz_data['neural_frames_list'])))
+    cumframes_cam = np.hstack(([0], np.cumsum(npz_data['cam_frames_list'])))
+    
+    return spks, xpos, ypos, tcams, tneurals, cumframes_neural, cumframes_cam, npz_data       
+
+def carbachol_in_dark():
+    """ if mname, sess, blk and rewType are all empty, it will output all session
+        if only want first session from all all animals, sess=[1]
+    """
+    # all the following recordings have direction: nasal (left side of video) to temporal (right side of video)
+    print('Sessions from carbachol_in_dark >>>')
+    db=[]
+    db.append({'sess#':1,'mname':'TX120','datexp':'2024_06_19','blk':'1','is2p':1,'rewType':'None','exptype':'baseline','Note':'3Hz'})
+    db.append({'sess#':2,'mname':'TX120','datexp':'2024_06_19','blk':'3','is2p':1,'rewType':'None','exptype':'carbochol','Note':'3Hz', 'blink_baselined_threshold':'.4', 'speed_threshold':'99.5'})
+    db.append({'sess#':3,'mname':'TX120','datexp':'2024_06_19','blk':'4','is2p':1,'rewType':'None','exptype':'carbochol','Note':'3Hz', 'blink_baselined_threshold':'.5', 'speed_threshold':'99.7'})
+    
+    db.append({'sess#':1,'mname':'TX121','datexp':'2024_06_19','blk':'1','is2p':1,'rewType':'None','exptype':'baseline','Note':'3Hz'})
+    db.append({'sess#':2,'mname':'TX121','datexp':'2024_06_19','blk':'3','is2p':1,'rewType':'None','exptype':'carbochol','Note':'3Hz', 'blink_baselined_threshold':'.1', 'speed_threshold':'99.7'})
+    db.append({'sess#':3,'mname':'TX121','datexp':'2024_06_19','blk':'4','is2p':1,'rewType':'None','exptype':'carbochol','Note':'3Hz', 'blink_baselined_threshold':'.1', 'speed_threshold':'99.7'})  
+    
+    db.append({'sess#':1,'mname':'TX123','datexp':'2024_06_20','blk':'1','is2p':1,'rewType':'None','exptype':'baseline','Note':'3Hz'})
+    db.append({'sess#':2,'mname':'TX123','datexp':'2024_06_20','blk':'2','is2p':1,'rewType':'None','exptype':'carbochol','Note':'3Hz', 'blink_baselined_threshold':'1.5', 'speed_threshold':'99.5'})  
+      
+    db.append({'sess#':1,'mname':'LZ14','datexp':'2024_06_20','blk':'1','is2p':1,'rewType':'None','exptype':'baseline','Note':'3Hz'})
+    db.append({'sess#':2,'mname':'LZ14','datexp':'2024_06_20','blk':'2','is2p':1,'rewType':'None','exptype':'carbochol','Note':'3Hz', 'blink_baselined_threshold':'.2', 'speed_threshold':'99.5'})  
+    
+    db = np.array(db)
+    return db
+
+def get_light_static_info():
+    # all the following recordings have direction: temporal (left side of video) to nasal (right side of video)
+    print("Sessions from get_light_static_info >>>")
+    db=[]
+    db.append({'sess#':1,'mname':'TX143','datexp':'2024_10_28','blk':'1', 'blink_baselined_threshold':'1.5', 'speed_threshold':'99.5'})
+    db.append({'sess#':2,'mname':'TX143','datexp':'2024_10_28','blk':'3'})
+    
+    db.append({'sess#':1,'mname':'TX139','datexp':'2024_10_31','blk':'1', 'blink_baselined_threshold':'.2', 'speed_threshold':'99.5'})
+    db.append({'sess#':2,'mname':'TX139','datexp':'2024_10_31','blk':'2'})
+
+    db.append({'sess#':1,'mname':'LZ16','datexp':'2024_11_04','blk':'1', 'blink_baselined_threshold':'.2', 'speed_threshold':'99.9'})
+    db.append({'sess#':2,'mname':'LZ16','datexp':'2024_11_04','blk':'2'})
+    
+    db.append({'sess#':1,'mname':'TX140','datexp':'2024_11_06','blk':'1', 'blink_baselined_threshold':'.1', 'speed_threshold':'99.5'})
+    db.append({'sess#':2,'mname':'TX140','datexp':'2024_11_06','blk':'2'})
+
+    db.append({'sess#':1,'mname':'FXa1','datexp':'2026_01_15','blk':'1', 'blink_baselined_threshold':'.1', 'speed_threshold':'99.5'})
+    db.append({'sess#':2,'mname':'FXa1','datexp':'2026_01_15','blk':'2'})
+
+    db.append({'sess#':1,'mname':'FXa8','datexp':'2026_01_16','blk':'1', 'blink_baselined_threshold':'.1', 'speed_threshold':'99.5'})
+    db.append({'sess#':2,'mname':'FXa8','datexp':'2026_01_16','blk':'2'})
+
+    db.append({'sess#':1,'mname':'FXa10','datexp':'2026_01_16','blk':'1', 'blink_baselined_threshold':'.1', 'speed_threshold':'99.5'})
+    db.append({'sess#':2,'mname':'FXa10','datexp':'2026_01_16','blk':'2'})
+
+    db = np.array(db)
+    return db
+
+def get_light_random_info():
+    print("Sessions from get_light_random_info >>>")
+    db=[]
+    # random stim data
+    # all the following recordings have direction: temporal (left side of video) to nasal (right side of video)
+    db.append({'mname':'LZ16','datexp':'2024_07_29','blk':'1', 'blink_baselined_threshold':'.2', 'speed_threshold':'99.9'})
+    db.append({'mname':'TX139','datexp':'2024_08_10','blk':'1', 'blink_baselined_threshold':'.2', 'speed_threshold':'99.5'})
+    db.append({'mname':'TX143','datexp':'2024_08_10','blk':'1', 'blink_baselined_threshold':'.2', 'speed_threshold':'99.7'})
+    db.append({'mname':'TX144','datexp':'2024_08_10','blk':'1', 'blink_baselined_threshold':'.4', 'speed_threshold':'99.5'})
+    db.append({'mname':'FXa8','datexp':'2026_01_13','blk':'1', 'blink_baselined_threshold':'.2', 'speed_threshold':'99.5'})
+    db.append({'mname':'FXa9','datexp':'2026_01_15','blk':'1', 'blink_baselined_threshold':'.2', 'speed_threshold':'99.5'})
+    db.append({'mname':'FXa10','datexp':'2026_01_13','blk':'1', 'blink_baselined_threshold':'.2', 'speed_threshold':'99.5'})    
+    db = np.array(db)
+    return db
