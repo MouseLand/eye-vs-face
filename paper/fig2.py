@@ -4,7 +4,6 @@ import os, sys
 import numpy as np
 from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
 from scipy.stats import zscore
-import helper_functions
 from rastermap import Rastermap, utils
 from scipy.stats import f_oneway, ttest_rel
 from statsmodels.stats.multitest import multipletests
@@ -13,14 +12,9 @@ from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import sys
 sys.path.insert(0, '/home/asyeda/Facemap/facemap')
 from facemap import pupil
-import pupil_dark_helpers as pdh
-from itertools import combinations
-import nonlinear_refactored
-from scipy.ndimage import maximum_filter1d, minimum_filter1d, gaussian_filter
-import matplotlib.patheffects as pe
 import cv2
 from sklearn.decomposition import PCA
-from scipy.stats import wilcoxon
+from scipy import interpolate 
 
 LABEL_FONTSIZE = 12
 plt.rcParams['font.family'] = 'Arial'
@@ -33,32 +27,32 @@ plt.rcParams['legend.fontsize'] = LABEL_FONTSIZE
 pupil_x_color = 'darkgreen'
 pupil_y_color = 'lightgreen'
 
+# Set folder
+BASE_FOLDER = '/home/asyeda/stringerlab_dm11/eye-vs-face/'
+
 def plot():
     fig = plt.figure(figsize=(14, 7), dpi=300)
     gs = GridSpec(2, 4, figure=fig, hspace=.15, wspace=0.2, width_ratios=[1, 1.2, 1.2, .7])
 
-    plot_illustration(gs[0,0], '/home/asyeda/pupil_analysis/dark_fig_illus.png')
+    plot_illustration(gs[0,0], f'{BASE_FOLDER}images/dark_fig_illus.png')
     plot_fve_prepost_carbachol(gs[1,0])
-    #raster_plot_dark(gs[0,1:3])
     raster_plot_predictions(fig, gs[:,1:3])
 
     plot_varexp_lineplot(gs[0,3])
     plot_varexp_curve(gs[1,3])
-    #scatter_plot(gs[1,2])
 
     # save figure
     fig.tight_layout()
-    plt.savefig('figure2.png', dpi=300, bbox_inches='tight')
+    plt.savefig(f'{BASE_FOLDER}figures/figure2.png', dpi=300, bbox_inches='tight')
 
     plt.show()
 
 def plot_illustration(gs, fp):
-    before_carbachol_video = "/home/asyeda/pupil_analysis/dark_recordings/LZ14_2024_06_20_1_full.mp4"
-    after_carbachol_video = "/home/asyeda/pupil_analysis/dark_recordings/LZ14_2024_06_20_2_full.mp4"
-    before_eye_video = "/home/asyeda/pupil_analysis/dark_recordings/LZ14_2024_06_20_1_small.mp4"
-    after_eye_video = "/home/asyeda/pupil_analysis/dark_recordings/LZ14_2024_06_20_2_small.mp4"
-    after_small_proc = "/home/asyeda/pupil_analysis/dark_recordings/LZ14_2024_06_20_2_small_proc.npy"
-    after_full_proc = "/home/asyeda/pupil_analysis/dark_recordings/LZ14_2024_06_20_1_full_proc.npy"
+    before_carbachol_video = f"{BASE_FOLDER}data/LZ14_2024_06_20_1_full.mp4"
+    after_carbachol_video = f"{BASE_FOLDER}data/LZ14_2024_06_20_2_full.mp4"
+    before_eye_video = f"{BASE_FOLDER}data/LZ14_2024_06_20_1_small.mp4"
+    after_eye_video = f"{BASE_FOLDER}data/LZ14_2024_06_20_2_small.mp4"
+    after_small_proc = f"{BASE_FOLDER}data/LZ14_2024_06_20_2_small_proc.npy"
     before_idx, after_idx = 26749, 14000 #68414
     alpha = 3 # Contrast multiplier
     beta = 1    # Brightness offset (can be removed or adjusted)
@@ -93,7 +87,7 @@ def plot_illustration(gs, fp):
          fontsize=LABEL_FONTSIZE,
          transform=ax0.transAxes, fontweight='bold')
 
-    overlay_image = plt.imread('/home/asyeda/pupil_analysis/paper_figures/pipette_resized.png' )  
+    overlay_image = plt.imread(f'{BASE_FOLDER}images/pipette_resized.png' )  
     # resize overlay image
     new_width, new_height = int(overlay_image.shape[1]*.7), int(overlay_image.shape[0]*.7)
     overlay_image = cv2.resize(overlay_image, (new_width, new_height), interpolation=cv2.INTER_CUBIC)
@@ -192,406 +186,7 @@ def get_frame_by_index(video_path, frame_idx):
     
     return frame
 
-def scatter_plot(gs):
-    
-    base_folder = '/home/asyeda/pupil_analysis/dark_recordings'
-    data = np.load(f"{base_folder}/nonlinear_dark_results_nonshifted.npy", allow_pickle=True).item()
 
-    ax = plt.subplot(gs)
-    pos = ax.get_position().bounds
-    ax.set_position([pos[0]+0.02, pos[1], pos[2], pos[3]])
-
-    num_animals = len(data)
-    for i in range(num_animals):
-        mname = list(data.keys())[i]
-
-        pupil_ve = data[mname]['pupil']["varexp_neurons_after_carbachol"]*100
-        face_ve = data[mname]['face_eye']["varexp_neurons_after_carbachol"]*100
-        ax.scatter(pupil_ve, face_ve, s=.4, color='grey', alpha=0.5)
-        ax.set_xlabel("Pupil variance explained (%)")
-        ax.set_ylabel("Face w/o eye\nvariance explained (%)")
-        ax.set_xlim(-10, 70)
-        ax.set_ylim(-10, 70)
-        ax.plot([-100, 100], [-100, 100], 'k--')
-
-    # Adjust position
-    pos = ax.get_position().bounds
-    ax.set_position([pos[0]-0.015, pos[1], pos[2]*.9, pos[3]*.9])
-
-"""
-def get_behavioral_data(recording_type):
-
-    dbs = pdh.carbachol_in_dark() 
-    base_folder = '/home/asyeda/pupil_analysis/dark_recordings/'
-    mname = 'LZ14'
-    datexp = [entry['datexp'] for entry in dbs if entry['mname'] == mname][0]
-
-    blink_idx = []
-    # Get blinks for the first carbachol recording only
-    blink_data = np.load('/home/asyeda/pupil_analysis/blink_times.npy', allow_pickle=True).item()
-    for blk in blink_data[recording_type][mname].keys():
-        blink_start_idx = blink_data[recording_type][mname][blk][:,-2].astype(int)
-        blink_end_idx = blink_data[recording_type][mname][blk][:,-1].astype(int)
-        for s, e in zip(blink_start_idx, blink_end_idx):
-            if e > s:
-                blink_idx = np.append(blink_idx, np.arange(s-5, e+6)) # few frames before and after blink removed
-            else:
-                blink_idx = np.append(blink_idx, s)
-    blink_idx = np.unique(blink_idx.astype(int))
-
-    # Check if file exists 
-    if os.path.exists(f"{base_folder}/{mname}_{datexp}_rasterdata.npz"):
-        data = np.load(f"{base_folder}/{mname}_{datexp}_rasterdata.npz", allow_pickle=True)
-        # Load blink data
-        X_embedding = data['X_embedding']
-        aligned_saccades = data['aligned_saccades']
-        pupil_x = data['pupil_x']
-        pupil_y = data['pupil_y']
-        exact_saccades = data['exact_saccades']
-        pupil_timestamp = data['pupil_timestamp']
-        spks_timestamp = data['spks_timestamp']
-        motSVD = data['motSVD']
-        neural_frames_list = data['neural_frames_list']
-        cam_frames_list = data['cam_frames_list']
-        pupil_area = data['pupil_area']
-    else:
-        # Load saccade data
-        saccade_data = np.load('/home/asyeda/pupil_analysis/saccade_times.npy', allow_pickle=True).item()
-        _, _, _, _, _, _, _, npz_data = nonlinear_refactored.load_data(base_folder, mname, datexp)
-
-        # Need data concatenated across blocks
-        spks = npz_data['spks']
-        pupil_x = npz_data['pupil_x_small']
-        pupil_y = npz_data['pupil_y_small']
-        pupil_area = npz_data['pupil_area_small']
-
-        # Get saccades for the first carbachol recording only i.e. second block
-        blocks = list(npz_data['tcam'].item())
-        blk = blocks[1].split('blk')[1]
-        exact_saccades = saccade_data[recording_type][mname][blk] # Get exact saccade indices from precomputed data
-        
-        model = Rastermap().fit(zscore(spks.copy(), axis=1))
-        y = model.embedding # neurons x 1
-        isort = model.isort
-        X_embedding = zscore(utils.bin1d(spks[isort], bin_size=200, axis=0), axis=1)
-        
-        neural_saccade_times, aligned_saccades = get_aligned_saccade_times(exact_saccades, npz_data['tneural'].item()['blk2'])
-        aligned_saccades = aligned_saccades.astype(int)
-        
-        # Get sampling rate of data
-        tmin = np.min(npz_data['tcam'].item()['blk2'])
-        cam_time = (npz_data['tcam'].item()['blk2'] - tmin) * 24 * 60 * 60
-        sampling_rate = (1 / np.mean(np.diff(cam_time))).astype(int)
-
-        # Save data to npz file 
-        motSVD = npz_data['face_svd'].item()['motSVD'][0]
-        neural_frames_list = npz_data['neural_frames_list']
-        cam_frames_list = npz_data['cam_frames_list']
-
-        data = {"X_embedding": X_embedding, "aligned_saccades": aligned_saccades, "pupil_x": pupil_x, "pupil_y": pupil_y, 
-                "pupil_timestamp": npz_data['tcam'], "exact_saccades": exact_saccades, "neural_saccade_times": neural_saccade_times, "pupil_area": pupil_area,
-                  "spks_timestamp": npz_data['tneural'], "motSVD": motSVD, "sampling_rate": sampling_rate, "neural_frames_list": npz_data['neural_frames_list'],
-                  "cam_frames_list": npz_data['cam_frames_list']}  
-        np.savez(f"{base_folder}/{mname}_{datexp}_rasterdata.npz", **data)
-
-    return X_embedding, aligned_saccades, pupil_x, pupil_y, exact_saccades, pupil_timestamp, spks_timestamp, motSVD, blink_idx, neural_frames_list, cam_frames_list, pupil_area
-
-def raster_plot(gs):
-
-    X_embedding, aligned_saccades, pupil_x, pupil_y, exact_saccades, pupil_timestamp, spks_timestamp, motSVD, blink_idx, neural_frames_list, cam_frames_list, pupil_area = get_behavioral_data("dark")
-    
-    nested_gs = GridSpecFromSubplotSpec(3, 1, height_ratios=[.7, .2, .1], subplot_spec=gs, hspace=0.)
-
-    vline = neural_frames_list[0]
-    vline_cam = cam_frames_list[0]
-    vline_width = .5
-
-    neural_xmin = vline - (2*60*3)
-    neural_xmax = vline + (4*60*3)
-    idx_after = 4*60*3
-    neural_xlim = [neural_xmin, neural_xmax]
-    pupil_xmin = np.argmin(np.abs(pupil_timestamp.item()['blk1'] - spks_timestamp.item()['blk1'][neural_xmin]))
-    pupil_xmax = np.argmin(np.abs(pupil_timestamp.item()['blk2'] - spks_timestamp.item()['blk2'][idx_after]))
-    # session end then restart timestamp
-    second_session_start = np.argmin(np.abs(pupil_timestamp.item()['blk2'] - spks_timestamp.item()['blk2'][0])).astype(int)
-    pupil_xlim = [pupil_xmin+second_session_start, vline_cam + pupil_xmax]
-
-    # Nan out values during blink times
-    pupil_x_nan = pupil_x.copy()
-    pupil_y_nan = pupil_y.copy()
-    pupil_x_nan[blink_idx] = np.nan
-    pupil_y_nan[blink_idx] = np.nan
-    # Also mask values before the vline
-    pupil_x_nan[:vline_cam+second_session_start] = np.nan
-    pupil_y_nan[:vline_cam+second_session_start] = np.nan    
-
-    # Plot rastermap sorted by pupil area correlation
-    ax0 = plt.subplot(nested_gs[0])
-    ax0.imshow(X_embedding, vmin=0, vmax=1, cmap="gray_r", aspect="auto")
-    ax0.set_yticks([])
-    ax0.set_xticks([])
-    ax0.set_ylim(X_embedding.shape[0],0)
-    ax0.set_xlim(neural_xlim)
-    for s in aligned_saccades:
-        ax0.axvline(s+vline, color=(0,1,0), linestyle='dashed', lw=vline_width)
-    remove_spines(ax0)
-    # Add y-axis scale bar for rastermap
-    bin_size = 200
-    scale_bar_length = 10
-    scale_bar_start = ax0.get_ylim()[0] 
-    scale_bar_end = scale_bar_start - scale_bar_length
-    # orient the text vertically
-    ax0.plot([ax0.get_xlim()[0]-10, ax0.get_xlim()[0]-10], [scale_bar_start, scale_bar_end], 'k-', lw=2, clip_on=False)
-    ax0.text(ax0.get_xlim()[0]-35, scale_bar_start - 35 + scale_bar_length/2, f'{scale_bar_length*bin_size} neurons', ha='left', va='center', rotation='vertical')
-    ax0.axvline(vline, color='r', linestyle='dashed', lw=.5)
-
-    # Plot pupil x and y
-    pupil_x_color = 'darkgreen'
-    pupil_y_color = 'lightgreen'
-    ax1 = plt.subplot(nested_gs[1])
-    ax1.plot(pupil_x_nan, color=pupil_x_color, label='Pupil X', lw=.5)
-    ax1.plot(pupil_y_nan, color=pupil_y_color, label='Pupil Y', lw=.5)
-    # Plot saccades
-    for s in exact_saccades:
-        if s[0] in blink_idx or s[0].astype(int) < second_session_start:
-            continue
-        ax1.axvline(s[0].astype(int)+vline_cam, color=(0,1,0), linestyle='dashed', linewidth=vline_width)
-    ax1.set_xlim(pupil_xlim)
-    #legend = ax1.legend(facecolor='none', frameon=False, bbox_to_anchor=(-.002, .4), fontsize=LABEL_FONTSIZE-4)
-    legend = ax1.legend(facecolor='none', frameon=False, bbox_to_anchor=(0.05, .52, .1, .1), fontsize=LABEL_FONTSIZE-4)
-    leg_colors = [pupil_x_color, pupil_y_color]
-    for leg in legend.get_texts():
-        leg.set_color(leg_colors.pop(0))
-    # remove legend lines 
-    for leg_line in legend.get_lines():
-        leg_line.set_linewidth(0)
-    ax1.set_yticks([])
-    ax1.set_xticks([])
-    remove_spines(ax1)
-    # Add x-axis scale bar for pupil area, x and y, rastermap on the right
-    duration = 10 # seconds
-    behav_sampling_rate = np.mean(np.diff(pupil_timestamp.item()['blk2'])) * 24 * 3600 * 1000
-    scale_bar_length = behav_sampling_rate * duration
-    scale_bar_start = ax1.get_xlim()[1] - 500
-    scale_bar_end = scale_bar_start + scale_bar_length
-    ax1.plot([scale_bar_start, scale_bar_end], [ax1.get_ylim()[0]+2, ax1.get_ylim()[0]+2], 'k-', lw=2, clip_on=False)
-    ax1.text(scale_bar_start + scale_bar_length/2, ax1.get_ylim()[0]+2.5, f'{int(duration)} s'.format(str(duration)), ha='center', va='bottom', fontsize=LABEL_FONTSIZE-3)
-    # Add y-axis scale bar for pupil x and y
-    scale_bar_length = 3
-    scale_bar_start = ax1.get_ylim()[1] - 17
-    scale_bar_end = scale_bar_start + scale_bar_length
-    ax1.plot([ax1.get_xlim()[0]+5, ax1.get_xlim()[0]+5], [scale_bar_start, scale_bar_end], 'k-', lw=1.5, clip_on=False)
-    ax1.text(ax1.get_xlim()[0]-(0.035*np.diff(ax1.get_xlim())), scale_bar_start + scale_bar_length/2, f'{scale_bar_length} px', ha='left', va='center', fontsize=LABEL_FONTSIZE-3)
-    ax1.axvline(vline_cam+second_session_start, color='r', linestyle='dashed', lw=.5)
-
-    # Plot pupil area trace
-    ax2 = plt.subplot(nested_gs[2])
-    line, = ax2.plot(pupil_area, label='Pupil\narea', color='orange', lw=2)
-    # Plot saccades
-    for s in exact_saccades:
-        if s[0] in blink_idx or s[0].astype(int) < second_session_start:
-            continue
-        ax2.axvline(s[0].astype(int)+vline_cam, color=(0,1,0), linestyle='dashed', linewidth=vline_width)
-    #line.set_path_effects([pe.Stroke(linewidth=2, foreground='black'), pe.Normal()])
-    legend=ax2.legend(loc='center left', bbox_to_anchor=(-0.15, 0.55), facecolor='none')
-    legend.get_texts()[0].set_color('orange') 
-    legend.get_frame().set_linewidth(0)
-    for line in legend.get_lines():
-        line.set_linewidth(0)
-    ax2.set_yticks([])
-    ax2.set_xticks([])
-    ax2.set_xlim(pupil_xlim)
-    ax2.axvline(vline_cam, color='r', linestyle='dashed')
-    remove_spines(ax2)
-
-    # Add y-axis scale bar for pupil area
-    scale_bar_length = 500
-    scale_bar_start = ax1.get_ylim()[0] + 10
-    scale_bar_end = scale_bar_start + scale_bar_length
-    ax1.plot([ax1.get_xlim()[0]+5, ax1.get_xlim()[0]+5], [scale_bar_start, scale_bar_end], 'k-', lw=1)
-    ax1.text(ax1.get_xlim()[0]+10, scale_bar_start + scale_bar_length/2, f'{scale_bar_length} AU', ha='left', va='center')
-
-    return 
-"""
-"""
-def raster_plot_dark(gs):
-
-    dbs = pdh.carbachol_in_dark() 
-    base_folder = '/home/asyeda/pupil_analysis/dark_recordings/'
-    mname = 'LZ14'
-    datexp = [entry['datexp'] for entry in dbs if entry['mname'] == mname][0]
-
-    # Check if file exists 
-    if os.path.exists(f"{base_folder}/{mname}_{datexp}_rasterdata_udcnv.npz"):
-        data = np.load(f"{base_folder}/{mname}_{datexp}_rasterdata_udcnv.npz", allow_pickle=True)
-        X_embedding = data['X_embedding']
-        pupil_x = data['pupil_x']
-        pupil_y = data['pupil_y']
-        pupil_area = data['pupil_area']
-        neural_frames_list = data['neural_frames_list']
-        tneural = data['tneural']
-        saccade_data = np.load('/home/asyeda/pupil_analysis/saccade_times.npy', allow_pickle=True).item()
-        aligned_saccades = []
-        # Get saccades
-        for i, block in enumerate(saccade_data["dark"][mname].keys()):
-            _, a_sac = get_aligned_saccade_times(saccade_data["dark"][mname][block], data['tneural'].item()['blk{}'.format(block)])
-            a_sac = a_sac.astype(int)
-            if i==0:
-                aligned_saccades.append(a_sac)
-        aligned_saccades = np.hstack(aligned_saccades)
-
-    else:
-        saccade_data = np.load('/home/asyeda/pupil_analysis/saccade_times.npy', allow_pickle=True).item()
-        mouse_dbs = [db for db in dbs if db['mname'] == mname]
-        blk = mouse_dbs[0]['blk']
-        npz_data = np.load(f"{base_folder}/{mname}_{datexp}_{blk}.npz", allow_pickle=True)
-
-        model = Rastermap().fit(zscore(npz_data['spks'], axis=1).copy())
-        y = model.embedding # neurons x 1
-        isort = model.isort
-        pupil_x, pupil_y, pupil_area = [], [], []
-        spks = []
-        for block_idx in range(2):
-            block = list(npz_data['tcam'].item().keys())[block_idx]
-            tcam = npz_data['tcam'].item()[block]
-            tneural = npz_data['tneural'].item()[block]
-            # Resample behavior data to neural timestamps
-            pupil_x.append(helper_functions.interp_value(helper_functions.segment_data(npz_data['pupil_x_polar'], npz_data['cam_frames_list'], block_idx), tcam, tneural))
-            pupil_y.append(helper_functions.interp_value(helper_functions.segment_data(npz_data['pupil_y_polar'], npz_data['cam_frames_list'], block_idx), tcam, tneural))
-            pupil_area.append(helper_functions.interp_value(helper_functions.segment_data(npz_data['pupil_area_small'], npz_data['cam_frames_list'], block_idx), tcam, tneural))
-            spks.append(helper_functions.segment_data(npz_data['spks'].T, npz_data['neural_frames_list'], block_idx).T)
-
-        pupil_x = np.concatenate(pupil_x, axis=0)
-        pupil_y = np.concatenate(pupil_y, axis=0)
-        pupil_area = np.concatenate(pupil_area, axis=0)
-        spks = np.concatenate(spks, axis=1)
-        neural_frames_list = npz_data['neural_frames_list']
-        cam_frames_list = npz_data['cam_frames_list']
-        tneural = npz_data['tneural']
-        X_embedding = zscore(utils.bin1d(spks[isort], bin_size=200, axis=0), axis=1)
-
-        np.savez(f"{base_folder}/{mname}_{datexp}_rasterdata_udcnv.npz", X_embedding=X_embedding, pupil_x=pupil_x, pupil_y=pupil_y, pupil_area=pupil_area, neural_frames_list=npz_data['neural_frames_list'], cam_frames_list=npz_data['cam_frames_list'], tneural=npz_data['tneural'], tcam=npz_data['tcam'])
-
-    # Get blinks for the first carbachol recording only
-    blink_data = np.load('/home/asyeda/pupil_analysis/blink_times.npy', allow_pickle=True).item()
-    neural_blink_times, neural_blink_idx = get_aligned_blink_times(blink_data['dark'][mname]['2'], tneural.item()['blk2'])
-
-    # Plot
-    nested_gs = GridSpecFromSubplotSpec(4, 1, subplot_spec=gs, hspace=0.15, height_ratios=[.8, .1, .2, .25])
-    vline = neural_frames_list[0]
-    start = vline - (2*60*3)
-    end = vline + (6*60*3)
-    xlim = [start,end]
-    vline_width = .4
-
-    # Colors for pupil x and y
-    pupil_y_color = 'lightgreen'
-    pupil_x_color = 'darkgreen'
-
-    neural_blink_idx = neural_blink_idx + vline
-    pupil_x_nan = pupil_x.copy()
-    pupil_y_nan = pupil_y.copy()
-    # Mask pupil x and y values during blinks
-    pupil_x_nan[neural_blink_idx] = np.nan
-    pupil_y_nan[neural_blink_idx] = np.nan
-
-    # Plot rastermap sorted by pupil area correlation
-    ax0 = plt.subplot(nested_gs[0])
-    ax0.imshow(X_embedding, vmin=0, vmax=1, cmap="gray_r", aspect="auto")
-    ax0.set_xticks([])
-    ax0.set_yticks([])
-    ax0.set_xlim(xlim)
-    #ax0.vlines(np.cumsum(npz_data['neural_frames_list']), ymin=0, ymax=X_embedding.shape[0], colors='r', linestyles='dashed')
-    ax0.set_ylim(X_embedding.shape[0],0)
-    ax0.axvline(vline, color='r', linestyle='dashed')
-    for s in aligned_saccades:
-        ax0.axvline(s+vline, color=(0,1,0), linestyle='dashed', lw=vline_width)
-    remove_spines(ax0)
-    # Add y-axis scale bar for rastermap
-    bin_size = 200
-    scale_bar_length = 10
-    scale_bar_start = ax0.get_ylim()[0] 
-    scale_bar_end = scale_bar_start - scale_bar_length
-    # orient the text vertically
-    ax0.plot([ax0.get_xlim()[0]-10, ax0.get_xlim()[0]-10], [scale_bar_start, scale_bar_end], 'k-', lw=2, clip_on=False)
-    ax0.text(ax0.get_xlim()[0]-45, scale_bar_start - 35 + scale_bar_length/2, f'{scale_bar_length*bin_size} neurons', ha='left', va='center', rotation='vertical')
-
-    # Plot pupil area trace
-    ax1 = plt.subplot(nested_gs[1])
-    line, = ax1.plot(pupil_area, label='Pupil\narea', color='olive', lw=1.2)
-    for s in aligned_saccades:
-        if s+vline <= vline:
-            continue
-        ax1.axvline(s+vline, color=(0,1,0), linestyle='dashed', linewidth=vline_width)
-    #line.set_path_effects([pe.Stroke(linewidth=2, foreground='black'), pe.Normal()])
-    legend=ax1.legend(loc='center left', bbox_to_anchor=(-0.15, 0.55), facecolor='none')
-    legend.get_texts()[0].set_color('olive') 
-    legend.get_frame().set_linewidth(0)
-    for line in legend.get_lines():
-        line.set_linewidth(0)
-    ax1.set_yticks([])
-    ax1.set_xticks([])
-    ax1.set_xlim(xlim)
-    ax1.axvline(vline, color='r', linestyle='dashed')
-    remove_spines(ax1)
-
-    # Add y-axis scale bar for pupil area
-    scale_bar_length = 500
-    scale_bar_start = ax1.get_ylim()[0] + 10
-    scale_bar_end = scale_bar_start + scale_bar_length
-    #ax1.plot([ax1.get_xlim()[0]+5, ax1.get_xlim()[0]+5], [scale_bar_start, scale_bar_end], 'k-', lw=1)
-    #ax1.text(ax1.get_xlim()[0]+10, scale_bar_start + scale_bar_length/2, f'{scale_bar_length} AU', ha='left', va='center')
-
-    # Plot pupil x trace
-    # Mask data before the red dashed line (vline)
-    masked_pupil_x = np.ma.masked_where(np.arange(len(pupil_x_nan)) < vline, pupil_x_nan)
-    masked_pupil_y = np.ma.masked_where(np.arange(len(pupil_y_nan)) < vline, pupil_y_nan)
-
-    ax2 = plt.subplot(nested_gs[2])
-    ax2.plot(masked_pupil_y, label='Elevation', color=pupil_y_color, lw=1.2)
-    ax2.plot(masked_pupil_x, label='Azimuth', color=pupil_x_color, lw=1.2)
-    for s in aligned_saccades:
-        if s+vline <= vline:
-            continue
-        ax2.axvline(s+vline, color=(0,1,0), linestyle='dashed', linewidth=vline_width)
-    ax2.set_xticks([])
-    ax2.set_yticks([])
-    ax2.set_xlim(xlim)
-    legend=ax2.legend(loc='center left', bbox_to_anchor=(-0.15, 0.45),facecolor='none')
-    legend.get_texts()[0].set_color(pupil_y_color)  
-    legend.get_texts()[1].set_color(pupil_x_color)  
-    legend.get_frame().set_linewidth(0)
-    for line in legend.get_lines():
-        line.set_linewidth(0)
-    #ax2.set_ylim(np.nanpercentile([pupil_x,pupil_y], .1), np.nanpercentile([pupil_x,pupil_y], 99.99))
-    ax2.axvline(vline, color='r', linestyle='dashed')
-    remove_spines(ax2)
-    # Add y-axis scale bar for pupil x and y
-    scale_bar_length = 10
-    scale_bar_start = ax2.get_ylim()[0] + 25
-    scale_bar_end = scale_bar_start + scale_bar_length
-    ax2.plot([vline-17, vline-17], [scale_bar_start, scale_bar_end], 'k-', lw=1, clip_on=False, zorder=10)
-    ax2.text(vline-65, scale_bar_start + scale_bar_length/2, f'{scale_bar_length}$^\circ$', ha='left', va='center', clip_on=False)
-
-    # Add x-axis scale bar for pupil area, x and y, rastermap on the right
-    duration = 10 # seconds
-    scale_bar_length = 3 * duration
-    scale_bar_start = ax1.get_xlim()[1] - 50
-    scale_bar_end = scale_bar_start + scale_bar_length
-    ax1.plot([scale_bar_start, scale_bar_end], [ax1.get_ylim()[1]-200, ax1.get_ylim()[1]-200], 'k-', lw=1)
-    ax1.text(scale_bar_start + scale_bar_length/2, ax1.get_ylim()[1]-25, f'{int(duration)} s'.format(str(duration)), ha='center', va='bottom', clip_on=False)
-
-    # Under vline add text annotation carbachol added
-    ax2.text(vline+10, ax2.get_ylim()[0]-15, 'Carbachol added', ha='center', va='bottom', fontsize=10, color='r', clip_on=False)
-
-    # Position axes
-    pos = ax0.get_position().bounds
-    ax0.set_position([pos[0], pos[1]-0.09, pos[2], pos[3]*1.5])
-    pos = ax1.get_position().bounds
-    ax1.set_position([pos[0], pos[1]-0.12, pos[2], pos[3]*1.5])
-    pos = ax2.get_position().bounds
-    ax2.set_position([pos[0], pos[1]-0.15, pos[2], pos[3]*1.5])
-    """
 def get_aligned_blink_times(blink_data, spks_timestamps):
     blink_start_t = blink_data[:,0]
     blink_end_t = blink_data[:,1]
@@ -650,8 +245,7 @@ def remove_spines(ax):
 
 def plot_varexp_lineplot(gs):
 
-    base_folder = '/home/asyeda/pupil_analysis/dark_recordings'
-    nonlinear_results = np.load(f"{base_folder}/nonlinear_dark_results_udcnv.npy", allow_pickle=True).item()
+    nonlinear_results = np.load(f"{BASE_FOLDER}data/nonlinear_dark_results_udcnv.npy", allow_pickle=True).item()
 
     # Plot line plot
     input_labels = ['Pupil position', 'Face w/o eye','Face w/o eye\n+ pupil position']
@@ -804,11 +398,34 @@ def plot_varexp_lineplot(gs):
         fig.text(0.5*(x0f+x1f), y1f, 'n.s.', ha='center', fontsize=8)
 
 
+def carbachol_in_dark():
+    """ if mname, sess, blk and rewType are all empty, it will output all session
+        if only want first session from all all animals, sess=[1]
+    """
+    # all the following recordings have direction: nasal (left side of video) to temporal (right side of video)
+    print('Sessions from carbachol_in_dark >>>')
+    db=[]
+    db.append({'sess#':1,'mname':'TX120','datexp':'2024_06_19','blk':'1','is2p':1,'rewType':'None','exptype':'baseline','Note':'3Hz'})
+    db.append({'sess#':2,'mname':'TX120','datexp':'2024_06_19','blk':'3','is2p':1,'rewType':'None','exptype':'carbochol','Note':'3Hz', 'blink_baselined_threshold':'.4', 'speed_threshold':'99.5'})
+    db.append({'sess#':3,'mname':'TX120','datexp':'2024_06_19','blk':'4','is2p':1,'rewType':'None','exptype':'carbochol','Note':'3Hz', 'blink_baselined_threshold':'.5', 'speed_threshold':'99.7'})
+    
+    db.append({'sess#':1,'mname':'TX121','datexp':'2024_06_19','blk':'1','is2p':1,'rewType':'None','exptype':'baseline','Note':'3Hz'})
+    db.append({'sess#':2,'mname':'TX121','datexp':'2024_06_19','blk':'3','is2p':1,'rewType':'None','exptype':'carbochol','Note':'3Hz', 'blink_baselined_threshold':'.1', 'speed_threshold':'99.7'})
+    db.append({'sess#':3,'mname':'TX121','datexp':'2024_06_19','blk':'4','is2p':1,'rewType':'None','exptype':'carbochol','Note':'3Hz', 'blink_baselined_threshold':'.1', 'speed_threshold':'99.7'})  
+    
+    db.append({'sess#':1,'mname':'TX123','datexp':'2024_06_20','blk':'1','is2p':1,'rewType':'None','exptype':'baseline','Note':'3Hz'})
+    db.append({'sess#':2,'mname':'TX123','datexp':'2024_06_20','blk':'2','is2p':1,'rewType':'None','exptype':'carbochol','Note':'3Hz', 'blink_baselined_threshold':'1.5', 'speed_threshold':'99.5'})  
+      
+    db.append({'sess#':1,'mname':'LZ14','datexp':'2024_06_20','blk':'1','is2p':1,'rewType':'None','exptype':'baseline','Note':'3Hz'})
+    db.append({'sess#':2,'mname':'LZ14','datexp':'2024_06_20','blk':'2','is2p':1,'rewType':'None','exptype':'carbochol','Note':'3Hz', 'blink_baselined_threshold':'.2', 'speed_threshold':'99.5'})  
+    
+    db = np.array(db)
+    return db
+
 def plot_varexp_curve(gs):
 
-    base_folder = '/home/asyeda/pupil_analysis/dark_recordings'
-    dbs = pdh.carbachol_in_dark()
-    nonlinear_results = np.load(f"{base_folder}/nonlinear_dark_results_udcnv.npy", allow_pickle=True).item()
+    dbs = carbachol_in_dark()
+    nonlinear_results = np.load(f"{BASE_FOLDER}data/nonlinear_dark_results_udcnv.npy", allow_pickle=True).item()
     mouse_list = np.unique([entry['mname'] for entry in dbs])
 
     # Define the figure with specified size and higher DPI for better quality
@@ -825,10 +442,6 @@ def plot_varexp_curve(gs):
         for behav_input in nonlinear_results[mname].keys():
             if behav_input == 'fullface' or behav_input == 'pupil_area':
                 continue
-            if 'pupil' in behav_input and 'dark' not in base_folder:
-                vexp = nonlinear_results[mname][behav_input]['vexp_before_carbachol']   # vexp_after_carbachol vexp_before_carbachol
-                vexp_pc = nonlinear_results[mname][behav_input]['vexp_pc_before_carbachol'] #  vexp_pc_after_carbachol vexp_pc_before_carbachol
-                vpcs = nonlinear_results[mname][behav_input]['vpcs_before_carbachol'] # vpcs_after_carbachol  vpcs_before_carbachol
             else:
                 vexp = nonlinear_results[mname][behav_input]['vexp_after_carbachol']   # vexp_after_carbachol vexp_before_carbachol
                 vexp_pc = nonlinear_results[mname][behav_input]['vexp_pc_after_carbachol'] #  vexp_pc_after_carbachol vexp_pc_before_carbachol
@@ -935,63 +548,15 @@ def in_any_range(x, ranges):
 
 
 def plot_fve_prepost_carbachol(gs):
-    dbs = pdh.carbachol_in_dark()
-    base_folder = '/home/asyeda/pupil_analysis/dark_recordings'
+    dbs = carbachol_in_dark()
     mouse_list = np.unique([pd['mname'] for pd in dbs])    
     pre_fve_all = []
     post_fve_all = []
 
-    if os.path.exists(f"{base_folder}/carbachol_pc_fve.npz"):
-        carbachol_pc_fve = np.load(f"{base_folder}/carbachol_pc_fve.npz", allow_pickle=True)
-        pre_fve_all = carbachol_pc_fve['pre_fve_all']
-        post_fve_all = carbachol_pc_fve['post_fve_all']
-    else:
-        for mname in mouse_list:
-            datexp = [db['datexp'] for db in dbs if db['mname'] == mname][0]
-            blocks = [db['blk'] for db in dbs if db['mname'] == mname]
-            _, _, _, tcams, tneurals, cumframes_neural, cumframes_cam, npz_data = nonlinear_refactored.load_data(base_folder, mname, datexp)
+    carbachol_pc_fve = np.load(f"{BASE_FOLDER}data/carbachol_pc_fve.npz", allow_pickle=True)
+    pre_fve_all = carbachol_pc_fve['pre_fve_all']
+    post_fve_all = carbachol_pc_fve['post_fve_all']
 
-            # Load spks using the new deconvolution method (udcnv)
-            spks_udcnv_file = "/media/Atika/neural_data_udcnv/{}_{}_1_spks.npz".format(mname, datexp)
-            spks = np.load(spks_udcnv_file)['spks']
-            
-            carbachol_block = list(npz_data['tcam'].item().keys())[1]
-            # Pre-carbachol data
-            pre_carbachol_spks = helper_functions.segment_data(spks.T, npz_data['neural_frames_list'], 0).T
-            pre_carbachol_spks = nonlinear_refactored.zscore_neural_data(pre_carbachol_spks)
-
-            # Post-carbachol data
-            post_carbachol_spks = helper_functions.segment_data(spks.T, npz_data['neural_frames_list'], 1).T
-            post_carbachol_spks = nonlinear_refactored.zscore_neural_data(post_carbachol_spks)
-
-            # Get PCA of neural data from pre-carbachol period 
-            num_neural_frames = 20 * 60 * 3 # 20 mins before carbachol, 3 Hz sampling rate
-            pca = PCA(n_components=128)
-            pca.fit(pre_carbachol_spks[:, -num_neural_frames:].T)
-            # baseline variances from PCA fit
-            baseline_var = pca.explained_variance_
-
-            num_neural_frames = 10 * 60 * 3 # 10 mins after carbachol, 3 Hz sampling rate
-            # --- First 10 min (pre-carchachol) ---
-            pre_data = pre_carbachol_spks[:, :num_neural_frames]
-            pre_proj = pca.transform(pre_data.T)
-            pre_var = np.var(pre_proj, axis=0)
-            
-            # --- First 10 min (post-carchachol) ---
-            post_data = post_carbachol_spks[:, :num_neural_frames]
-            post_proj = pca.transform(post_data.T)
-            post_var = np.var(post_proj, axis=0)
-            
-            # --- Normalize by total baseline variance ---
-            pre_fve = pre_var / baseline_var.sum()
-            post_fve = post_var / baseline_var.sum()
-
-            pre_fve_all.append(pre_fve)
-            post_fve_all.append(post_fve)
-
-        pre_fve_all = np.array(pre_fve_all)
-        post_fve_all = np.array(post_fve_all)
-        np.savez(f"{base_folder}/carbachol_pc_fve.npz", pre_fve_all=pre_fve_all, post_fve_all=post_fve_all)
     # Plot
     color_pre = "#377eb8"   # medium blue
     color_post = "brown"
@@ -1073,18 +638,17 @@ def plot_fve_prepost_carbachol(gs):
 def raster_plot_predictions(fig, gs, recording_type="dark"):
 
     if recording_type == 'dark':
-        rastermap_out = np.load("/home/asyeda/pupil_analysis/dark_recordings/rastermap_out_dark_udcnv.npy", allow_pickle=True).item()
-        dbs = pdh.carbachol_in_dark()
-        base_folder = '/home/asyeda/pupil_analysis/dark_recordings'
+        rastermap_out = np.load(f"{BASE_FOLDER}data/rastermap_out_dark_udcnv.npy", allow_pickle=True).item()
+        dbs = carbachol_in_dark()
         mname = 'LZ14' 
     else:
         raise ValueError("Invalid recording type. Only 'dark' is supported.")
 
     datexp = [db['datexp'] for db in dbs if db['mname'] == mname][0]
-    _, _, _, tcams, tneurals, cumframes_neural, cumframes_cam, npz_data = nonlinear_refactored.load_data(base_folder, mname, datexp)
+    _, _, _, tcams, tneurals, cumframes_neural, cumframes_cam, npz_data = load_data(f"{BASE_FOLDER}data/", mname, datexp)
 
     # Load spks using the new deconvolution method (udcnv)
-    spks_udcnv_file = "/media/Atika/neural_data_udcnv/{}_{}_1_spks.npz".format(mname, datexp)
+    spks_udcnv_file = f"{BASE_FOLDER}data/neural_data_udcnv/{mname}_{datexp}_1_spks.npz"
     spks = np.load(spks_udcnv_file)['spks']
     frames_per_folder = npz_data['cam_frames_list']
     pupil_x = npz_data['pupil_x_polar']
@@ -1132,11 +696,9 @@ def raster_plot_predictions(fig, gs, recording_type="dark"):
             blk = blocks[1].split('blk')[1]
             neural_timestamps = npz_data['tneural'].item()[f'blk{blk}'][np.sort(itest_indices)]
             camera_timestamps = npz_data['tcam'].item()[f'blk{blk}']    
-            pupil_x_resampled = helper_functions.interp_value(helper_functions.segment_data(pupil_x, frames_per_folder, c_idx), camera_timestamps, neural_timestamps)
-            pupil_y_resampled = helper_functions.interp_value(helper_functions.segment_data(pupil_y, frames_per_folder, c_idx), camera_timestamps, neural_timestamps)
-            pupil_area_resampled = helper_functions.interp_value(helper_functions.segment_data(pupil_area, frames_per_folder, c_idx), camera_timestamps, neural_timestamps)
-            #spks_blk = helper_functions.segment_data(spks.T, neural_frames_list, c_idx).T
-            #y_test_all = np.hstack((y_test_all, spks_blk[:, np.sort(itest_indices)]))
+            pupil_x_resampled = interp_value(segment_data(pupil_x, frames_per_folder, c_idx), camera_timestamps, neural_timestamps)
+            pupil_y_resampled = interp_value(segment_data(pupil_y, frames_per_folder, c_idx), camera_timestamps, neural_timestamps)
+            pupil_area_resampled = interp_value(segment_data(pupil_area, frames_per_folder, c_idx), camera_timestamps, neural_timestamps)
             y_pred_face_all = np.hstack((y_pred_face_all, y_pred_face[:, np.argsort(itest_indices)]))
             y_test_all = np.hstack((y_test_all, y_test[:, np.argsort(itest_indices)]))
         else:
@@ -1153,9 +715,7 @@ def raster_plot_predictions(fig, gs, recording_type="dark"):
             pupil_y_resampled = np.full(blk_end, np.nan)
             neural_timestamps = npz_data['tneural'].item()['blk1'][np.sort(itest_indices)]
             camera_timestamps = npz_data['tcam'].item()['blk1']    
-            pupil_area_resampled = helper_functions.interp_value(helper_functions.segment_data(pupil_area, frames_per_folder, c_idx), camera_timestamps, neural_timestamps)
-            #spks_blk = helper_functions.segment_data(spks.T, neural_frames_list, c_idx).T
-            #y_test_all = np.hstack((y_test_all, spks_blk[:, np.sort(itest_indices)]))
+            pupil_area_resampled = interp_value(segment_data(pupil_area, frames_per_folder, c_idx), camera_timestamps, neural_timestamps)
             y_pred_face_all =  np.hstack((y_pred_face_all, y_pred_face[:, np.argsort(itest_indices)]))
             y_test_all = np.hstack((y_test_all, y_test[:, np.argsort(itest_indices)]))
 
@@ -1167,25 +727,14 @@ def raster_plot_predictions(fig, gs, recording_type="dark"):
     pupil_y_all = np.concatenate(pupil_y_all, axis=0)
     pupil_area_all = np.concatenate(pupil_area_all, axis=0)
 
-    saccade_data = np.load('/home/asyeda/pupil_analysis/saccade_times.npy', allow_pickle=True).item()
-    aligned_saccades = []
-    # Get saccades
-    blocks = saccade_data["{}".format(recording_type)][mname].keys()
-    for i, block in enumerate(blocks):
-        _, a_sac = get_aligned_saccade_times(saccade_data["{}".format(recording_type)][mname][block], npz_data['tneural'].item()['blk{}'.format(block)])
-        a_sac = a_sac.astype(int)
-        if i==0:
-            aligned_saccades.append(a_sac)
-    aligned_saccades = np.hstack(aligned_saccades)
-
     # Run rastermap 
     # check if isort saved
-    if os.path.exists(f"{base_folder}/{mname}_{datexp}_rastermap_isort.npy"):
-        isort = np.load(f"{base_folder}/{mname}_{datexp}_rastermap_isort.npy")
+    if os.path.exists(f"{BASE_FOLDER}data/{mname}_{datexp}_rastermap_isort.npy"):
+        isort = np.load(f"{BASE_FOLDER}data/{mname}_{datexp}_rastermap_isort.npy")
     else:
         model = Rastermap().fit(zscore(spks, axis=1).copy())
         isort = model.isort
-        np.save(f"{base_folder}/{mname}_{datexp}_rastermap_isort.npy", isort)
+        np.save(f"{BASE_FOLDER}data/{mname}_{datexp}_rastermap_isort.npy", isort)
 
     # z-score the predicted data using mean and std of test data
     y_test_mean = np.nanmean(y_test_all, axis=1, keepdims=True)
@@ -1224,7 +773,7 @@ def raster_plot_predictions(fig, gs, recording_type="dark"):
     ax1.set_xticks([])
     ax1.set_yticks([])
     ax1.set_xlim(xlim_neural)
-    helper_functions.remove_spines(ax1)  
+    remove_spines(ax1)  
     # Add y-axis scale bar for rastermap
     bin_size = 200
     scale_bar_length = 10
@@ -1271,7 +820,7 @@ def raster_plot_predictions(fig, gs, recording_type="dark"):
     ax2.set_yticks([])
     ax2.set_xticks([])
     ax2.set_xlim(xlim_neural)
-    helper_functions.remove_spines(ax2)  
+    remove_spines(ax2)  
     pos = ax2.get_position().bounds
     ax2.set_position([pos[0], pos[1]-.056, pos[2], pos[3]*1.3])
     ax2.axvline(blk_end, color='r', linestyle='dashed')
@@ -1284,7 +833,7 @@ def raster_plot_predictions(fig, gs, recording_type="dark"):
     ax3.set_xticks([])
     ax3.set_xlim(xlim_neural)
     ax3.axvline(blk_end, color='r', linestyle='dashed')
-    helper_functions.remove_spines(ax3)
+    remove_spines(ax3)
     # Add text "no prediction" in nan area
     ax3.text((xlim_neural[0]+blk_end)/2, ax3.get_ylim()[0]/2, 
              'No prediction', ha='center', va='center', fontsize=LABEL_FONTSIZE+2, 
@@ -1299,7 +848,7 @@ def raster_plot_predictions(fig, gs, recording_type="dark"):
     ax4.set_xlim(xlim_neural)
     ax4.set_xticks([])
     ax4.margins(x=0)   
-    helper_functions.remove_spines(ax4)  
+    remove_spines(ax4)  
     ax4.set_yticks([])
     legend=ax4.legend(loc='center left', bbox_to_anchor=(-0.15, 0.45),facecolor='none', fontsize=LABEL_FONTSIZE-2)
     legend.get_texts()[0].set_color(pupil_y_color)  
@@ -1307,13 +856,10 @@ def raster_plot_predictions(fig, gs, recording_type="dark"):
     legend.get_frame().set_linewidth(0)
     for line in legend.get_lines():
         line.set_linewidth(0)
-    #ax4.axvline(blk_end, color='r', linestyle='dashed')
     # Add y-axis scale bar for pupil x and y
     scale_bar_length = 10
     scale_bar_start = ax4.get_ylim()[0] + 25
     scale_bar_end = scale_bar_start + scale_bar_length
-    #ax4.plot([blk_end-17, blk_end-17], [scale_bar_start, scale_bar_end], 'k-', lw=1, clip_on=False, zorder=10)
-    #ax4.text(blk_end-65, scale_bar_start + scale_bar_length/2, f'{scale_bar_length}$^\circ$', ha='left', va='center', clip_on=False)
     pos = ax4.get_position().bounds
     ax4.set_position([pos[0], pos[1]-.01, pos[2], pos[3]*.3])
     
@@ -1327,30 +873,43 @@ def raster_plot_predictions(fig, gs, recording_type="dark"):
         line.set_linewidth(0)    
     ax5.set_xlim(xlim_neural)
     ax5.margins(x=0)
-    helper_functions.remove_spines(ax5)
+    remove_spines(ax5)
     ax5.set_yticks([])
     ax5.set_xticks([])
-    #ax5.axvline(blk_end, color='r', linestyle='dashed')
     # adjust pos of ax5 
     pos = ax5.get_position().bounds
     ax5.set_position([pos[0], pos[1]+.085, pos[2], pos[3]*.3])
     
-    """
-    # Under vline add text annotation carbachol added
-    #ax5.text(blk_end+10, ax5.get_ylim()[0], 'Carbachol added', ha='center', va='bottom', fontsize=10, color='r', clip_on=False)
-    # Under vline add text annotation carbachol added
-    # add saccade lines to all plots
-    for s in aligned_saccades:
-        ax1.axvline(s+blk_end, color=(0,1,0), linestyle='dashed', linewidth=vline)
-        ax2.axvline(s+blk_end, color=(0,1,0), linestyle='dashed', linewidth=vline)
-        ax3.axvline(s+blk_end, color=(0,1,0), linestyle='dashed', linewidth=vline)
-        ax4.axvline(s+blk_end, color=(0,1,0), linestyle='dashed', linewidth=vline)
-        ax5.axvline(s+blk_end, color=(0,1,0), linestyle='dashed', linewidth=vline)
-    """
+def remove_spines(ax):
+    for loc, spine in ax.spines.items():
+        spine.set_linewidth(0)
 
-def zscore_neural_data(data, axis=1):
-    data -= data.mean(axis=axis, keepdims=True)
-    std = ((data ** 2).mean(axis=axis, keepdims=True) ** 0.5)
-    std[std == 0] = 1
-    data /= std
-    return data
+def segment_data(data, frames_per_folder, idx):
+    idx = np.arange(sum(frames_per_folder[:idx]), sum(frames_per_folder[:idx+1])) 
+    return data[idx]
+
+def interp_value(v, vind, tind, fill_value='extrapolate'):
+    """Interpolates a value 'v' at a target index 'tind' based on the given value indices 'vind'.
+
+    Args:
+        v (list or array-like): The values to be interpolated.
+        vind (list or array-like): The indices corresponding to the values.
+        tind (float or int): The target index at which to interpolate the value.
+
+    Returns:
+        float or int: The interpolated value at the target index.
+    """
+    Model_ = interpolate.interp1d(vind, v, fill_value=fill_value, bounds_error=False)
+    return Model_(tind)
+
+def load_data(base_folder, mname, datexp):
+    npz_data = np.load(f"{base_folder}/{mname}_{datexp}_{1}.npz", allow_pickle=True)
+    spks = npz_data['spks']
+    xpos = npz_data['xpos']
+    ypos = npz_data['ypos']
+    tcams = npz_data['tcam'].item()
+    tneurals = npz_data['tneural'].item()
+    cumframes_neural = np.hstack(([0], np.cumsum(npz_data['neural_frames_list'])))
+    cumframes_cam = np.hstack(([0], np.cumsum(npz_data['cam_frames_list'])))
+    
+    return spks, xpos, ypos, tcams, tneurals, cumframes_neural, cumframes_cam, npz_data
