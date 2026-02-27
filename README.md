@@ -62,8 +62,7 @@ Next, run the notebooks in the recommended execution order to reproduce the pape
 
 ### `data/`
 
-Preprocessed and intermediate files required for analysis.
-Large files are not tracked in Git and must be downloaded from figshare.
+Preprocessed and intermediate files required for analysis. Data downloaded from figshare will be placed here.
 
 ### `paper/`
 
