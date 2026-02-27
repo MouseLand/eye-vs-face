@@ -145,8 +145,7 @@ These files are imported automatically within the notebooks and do not need to b
 
 * `nonlinear_modelv3.py` — Model definitions, architecture, and training routines
 * `helper_functions.py` — General utility functions
-* `pupil_dark_helpers*.py` — Preprocessing functions for pupil and dark recording data
-* `loaders.py` — Dataset loading and batching utilities
+* `pupil_dark_helpers*.py` — Recording details
 
 These modules must remain in the `analysis/code/` directory so they can be imported correctly. Ensure that the `analysis` directory is in your Python path when running notebooks.
 
