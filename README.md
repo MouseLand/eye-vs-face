@@ -54,7 +54,7 @@ conda activate eye_vs_face
 pip install -r requirements.txt
 ```
 
-Next, run the notebooks in the recommended execution order to reproduce the paper analyses as decribed in the analysis/readme.md. Alternatively, run the ```figures/figures.ipynb``` notebook to generate final results/figures for the manuscript.
+Next, run the notebooks in the recommended execution order to reproduce the paper analyses as decribed in the analysis/readme.md. Alternatively, run the ```paper/figures.ipynb``` notebook to generate final results/figures for the manuscript.
 
 ---
 
