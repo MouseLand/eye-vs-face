@@ -5,7 +5,6 @@ import torch
 from sklearn.decomposition import PCA
 from scipy.interpolate import interp1d
 import sys
-sys.path.insert(0, '/home/asyeda/Facemap/facemap')
 from facemap.neural_prediction import neural_model
 import imp
 imp.reload(neural_model)
@@ -670,14 +669,7 @@ def analyze_mouse_data(data_path, mouse_list, dbs, device, recording_type, hyper
         # Load Data
         mouse_dbs = [db for db in dbs if db['mname'] == mname]
         datexp = mouse_dbs[0]['datexp']
-        if mname in ['FXa10', 'FXa8', 'FXa9', 'FXa1']:
-            spks, xpos, ypos, tcams, tneurals, cumframes_neural, cumframes_cam, npz_data = load_data(f'{data_path}/mouse_data/{mname}/{datexp}/{1}', mname, datexp) # different base folder for these mice
-        else:
-            _, xpos, ypos, tcams, tneurals, cumframes_neural, cumframes_cam, npz_data = load_data(f'{data_path}/mouse_data/{mname}/{datexp}/', mname, datexp)
-            # Load spks using the new deconvolution method (udcnv)
-            spks_udcnv_file = f"{data_path}/neural_data_udcnv/{mname}_{datexp}_1_spks.npz"
-            spks = np.load(spks_udcnv_file)['spks']
-            print(f"UDCNV neural data shape: {spks.shape}")
+        spks, xpos, ypos, tcams, tneurals, cumframes_neural, cumframes_cam, npz_data = load_data(f'{data_path}/npz_data/', mname, datexp) 
             
         tstart = 0
         tend = spks.shape[1]

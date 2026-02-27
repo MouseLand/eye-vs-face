@@ -13,6 +13,9 @@ from neuropop import nn_prediction
 import pupil_dark_helpers as pdh
 import nonlinear_modelv3
 
+BASE_FOLDER = os.getcwd().replace('analysis/code', '') # base folder for all data
+print("Base folder: ", BASE_FOLDER) # this should be parent folder called eye-vs-faces
+
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 np.random.seed(0)
 torch.manual_seed(0)
@@ -22,17 +25,12 @@ def get_neurons_metadata():
     dark_dbs = pdh.carbachol_in_dark() 
     light_random_dbs = pdh.get_light_random_info()
     light_static_dbs = pdh.get_light_static_info()
-    base_folders = [
-        '/home/asyeda/pupil_analysis/dark_recordings',
-        '/home/asyeda/pupil_analysis/light_recordings_random',
-        '/home/asyeda/pupil_analysis/light_recordings_static']
     dbs = [dark_dbs, light_random_dbs, light_static_dbs]
     category = ['dark', 'light_random', 'light_static']
 
     num_neurons = []
     num_recordings = 0
     for db_idx, db in enumerate(dbs):
-        base_folder = base_folders[db_idx]
         # Get mouse list
         mouse_list = np.unique([entry['mname'] for entry in db])
         for mname in mouse_list:
@@ -42,11 +40,7 @@ def get_neurons_metadata():
             # Get datexp 
             datexp = [entry['datexp'] for entry in db if entry['mname'] == mname][0]
             # Load data
-            if mname in ['FXa10', 'FXa8', 'FXa9', 'FXa1']:  # gcamp8 recordings
-                spks, _, _, _, _, _, _, _ = nonlinear_modelv3.load_data(f'/home/asyeda/nas113/Atika/{mname}/{datexp}/{1}', mname, datexp) # different base folder for these mice
-            else:
-                spks_udcnv_file = "/media/Atika/neural_data_udcnv/{}_{}_1_spks.npz".format(mname, datexp)
-                spks = np.load(spks_udcnv_file)['spks']
+            spks, _, _, _, _, _, _, _ = nonlinear_modelv3.load_data(f'{BASE_FOLDER}/data/npz_data/', mname, datexp) # different base folder for these mice
 
             num_neurons.append(spks.shape[0])
             num_recordings += 1
