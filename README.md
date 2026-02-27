@@ -78,8 +78,9 @@ Static images used in manuscript figures.
 ## Environment Setup
 
 ```bash
-conda env create -f environment.yml
+conda create -n eye_vs_face python=3.10
 conda activate eye_vs_face
+pip install -r requirements.txt
 ```
 ---
 
