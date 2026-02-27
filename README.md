@@ -11,15 +11,15 @@ Analysis code, model training, and figure-generation notebooks for the manuscrip
 ```
 .
 ├── data/                  # Preprocessed + intermediate data (download from figshare)
-├── paper/                 # figures.ipynb for manuscript figures
 ├── analysis/
 │   ├── code/              # Reusable analysis code
 │   └── notebooks/         # Analysis notebooks
 │       └── weights/       # Saccade model weights
 ├── figures/               # Generated figures
 ├── images/                # Static manuscript images
-├── environment.yml
-└── README.md
+├── paper/                 # figures.ipynb for manuscript figures
+├── README.md
+└── requirements.txt
 ```
 
 ---
