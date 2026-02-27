@@ -5,7 +5,7 @@
 This repository contains Jupyter notebooks used to generate output data used to make the main and supplementary figures. Each notebook corresponds to specific figures in the manuscript.
 
 ## Notebook Overview
-
+---
 ### 1. `generate_svds.ipynb`
 
 **Generates:**
