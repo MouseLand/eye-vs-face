@@ -24,6 +24,18 @@ Analysis code, model training, and figure-generation notebooks for the manuscrip
 
 ---
 
+### Hardware Configuration
+The analyses and models in this repository were run on the following system:
+* OS: Linux 5.15.0-139-generic
+* Python version: 3.10.13
+* CPU Model: Intel(R) Xeon(R) W-3365 CPU @ 2.70GHz
+* Architecture: x86_64
+* Cores: 64
+* RAM: 251.31 GB
+* GPU: NVIDIA GeForce RTX 4090
+
+---
+
 ## Directory Overview
 
 ### `data/`
