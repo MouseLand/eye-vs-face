@@ -1,4 +1,4 @@
-name: facemap-tongue
+name: eye_vs_face
 channels:
   - conda-forge
   - defaults
@@ -137,4 +137,4 @@ dependencies:
       - triton==3.0.0
       - tzdata==2024.1
       - widgetsnbextension==4.0.14
-prefix: /home/asyeda/anaconda3/envs/facemap-tongue
+prefix: /home/asyeda/anaconda3/envs/eye_vs_face
