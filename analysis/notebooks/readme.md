@@ -2,11 +2,15 @@
 
 # Figure Generation Notebooks
 
-This repository contains Jupyter notebooks used to generate output data used to make the main and supplementary figures. Each notebook corresponds to specific figures in the manuscript.
+This repository contains Jupyter notebooks used to generate processed data, model outputs, and visualizations for the main and supplementary figures.
 
-## Notebook Overview
+To reproduce the results, run the notebooks in the order listed below.
+
 ---
-### 1. `generate_svds.ipynb`
+
+# Execution Order
+
+## 1. `generate_svds.ipynb`
 
 **Generates:**
 
@@ -14,106 +18,44 @@ This repository contains Jupyter notebooks used to generate output data used to 
 * Figure 2 data
 
 **Description:**
-Computes PCA of behavioral videos using the Facemap software code in notebook and produces the input data used for training models for Figure 1 and 2. 
+Computes PCA of behavioral videos using Facemap code within the notebook. Produces dimensionality-reduced features used as inputs for downstream model training and analysis.
 
 **Output:**
 
-* Saved results in paper/data/mouse_data.
+* Saved results in `paper/data/mouse_data/`
 
 ---
 
-### 2. `geom_to_deg_saccade.ipynb`
+## 2. `geom_to_deg_saccade.ipynb` (optional)
 
 **Generates:**
 
-* Figure 1 and 2 data
+* Figure 1 data
+* Figure 2 data
 
 **Description:**
-Converts geometric measurements (x, y) pupil position coordinates into degrees for visualizations and model training in figure 1 and 2.
+Converts geometric pupil position coordinates (x, y) into degrees. These processed measurements are used for visualization and model training.
 
 **Output:**
 
-* Saved results in paper/data/mouse_data.
+* Saved results in `paper/data/mouse_data/`
 
 ---
 
-### 3. `run_predictions.ipynb`
-
-**Generates:**
-
-* Figure 1 results
-* Figure 2 results
-
-**Description:**
-Runs model predictions and evaluates performance across experimental conditions.
-
-**Output:**
-
-* Saved results in paper/data/figure_data.
-
----
-
-### 4. `tuning_curves.ipynb`
-
-**Generates:**
-
-* Figure 1 results
-
-**Description:**
-Computes and visualizes tuning curves for static image and random images conditions.
-
-**Output:**
-
-* Tuning curve plots
-* Saved results in paper/data/tuning_curve_data.
-
----
-
-### 5. `keypoints_prediction.ipynb`
-
-**Generates:**
-
-* Figure 3 results
-
-**Description:**
-Code script used to predict keypoints and pupil position from another set of keypoints or pupil position.
-
-**Output:**
-
-* Figure 3 panels
-* Saved results in paper/data/saccade_data.
-
----
-
-### 6. `saccade_video.ipynb`
-
-**Generates:**
-
-* Supplementary Video
-
-**Description:**
-Creates a video visualization of saccades aligned with relevant behavioral data.
-
-**Output:**
-
-* Exported video file (e.g., `.mp4`) saved in paper/data/saccade_data.
-
----
-
-### 7. `saccade_detection.ipynb`
+## 3. `saccade_detection.ipynb`
 
 **Purpose:**
 Initial saccade detection and label generation.
 
 **Description:**
-Uses the pretrained model (Andersson weights) to generate initial saccade predictions from behavioral videos. These predictions are used as provisional labels, which are subsequently refined in Facemap software before being used for fine-tuning.
+Uses the pretrained model (Andersson weights) to generate initial saccade predictions from behavioral videos. These predictions serve as provisional labels and should be manually refined in Facemap before being used for fine-tuning.
 
-**Workflow Context:**
+**Workflow:**
 
 1. Run the pretrained model to generate saccade predictions.
 2. Export predicted labels.
 3. Manually refine labels in Facemap.
-4. Use refined labels for downstream model fine-tuning (`run_predictions.ipynb`).
+4. Use refined labels for downstream model training (`run_predictions.ipynb`).
 
 **Output:**
 
@@ -122,3 +64,67 @@ Uses the pretrained model (Andersson weights) to generate initial saccade predic
 
 ---
 
+## 4. `run_predictions.ipynb`
+
+**Generates:**
+
+* Figure 1 results
+* Figure 2 results
+
+**Description:**
+Trains and/or runs the fine-tuned model using refined saccade labels. Evaluates performance across experimental conditions and produces prediction outputs used for Figures 1 and 2.
+
+**Output:**
+
+* Saved results in `paper/data/figure_data/`
+
+---
+
+## 5. `tuning_curves.ipynb`
+
+**Generates:**
+
+* Figure 1 results
+
+**Description:**
+Computes and visualizes tuning curves for static image and random image conditions.
+
+**Output:**
+
+* Tuning curve plots
+* Saved results in `paper/data/tuning_curve_data/`
+
+---
+
+## 6. `keypoints_prediction.ipynb`
+
+**Generates:**
+
+* Figure 3 results
+
+**Description:**
+Predicts keypoints and pupil position from another set of keypoints or pupil measurements. Produces panels used in Figure 3.
+
+**Output:**
+
+* Figure 3 panels
+* Saved results in `paper/data/saccade_data/`
+
+---
+
+## 7. `saccade_video.ipynb`
+
+**Generates:**
+
+* Supplementary Video
+
+**Description:**
+Creates a video visualization of detected saccades aligned with behavioral data.
+
+**Output:**
+
+* Exported video file (e.g., `.mp4`) saved in `paper/data/saccade_data/`
+
+---
+
+Although some of the notebooks can be run independently, running the notebooks in this order ensures that all required intermediate files are generated before downstream analyses and figure production. 
