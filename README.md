@@ -35,6 +35,28 @@ The analyses and models in this repository were run on the following system:
 * GPU: NVIDIA GeForce RTX 4090
 
 ---
+## Setup/Installation Instructions 
+
+To reproduce the results, clone the repository:
+
+```bash id="repo_clone"
+git clone https://github.com/MouseLand/eye-vs-face
+cd eye-vs-face
+```
+
+Next, download the dataset from the provided Figshare link and organize the files so that the directory structure matches the repository layout described in the README (e.g., `data/`, `paper/`, `analysis/`, etc.).
+
+After cloning the repository and downloading the data, create the Conda environment:
+
+```bash id="env_setup"
+conda create -n eye_vs_face python=3.10
+conda activate eye_vs_face
+pip install -r requirements.txt
+```
+
+Next, run the notebooks in the recommended execution order to reproduce the paper analyses as decribed in the analysis/readme.md. Alternatively, run the ```figures/figures.ipynb``` notebook to generate final results/figures for the manuscript.
+
+---
 
 ## Directory Overview
 
@@ -85,15 +107,6 @@ Exported figure panels from `paper/figures.ipynb`.
 
 Static images used in manuscript figures.
 
----
-
-## Environment Setup
-
-```bash
-conda create -n eye_vs_face python=3.10
-conda activate eye_vs_face
-pip install -r requirements.txt
-```
 ---
 
 ## Reproducibility Notes
