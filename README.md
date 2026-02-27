@@ -17,7 +17,7 @@ The project is organized into reusable analysis code, figure notebooks, and gene
 │   └── notebooks/         # Analysis notebooks
 ├── figures/               # Generated figures
 ├── images/                # Static images used in figures
-├── conda_packages_list.txt
+├── environment.yml
 └── README.md
 ```
 
