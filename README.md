@@ -15,6 +15,7 @@ Analysis code, model training, and figure-generation notebooks for the manuscrip
 ├── analysis/
 │   ├── code/              # Reusable analysis code
 │   └── notebooks/         # Analysis notebooks
+│       └── weights/       # Saccade model weights
 ├── figures/               # Generated figures
 ├── images/                # Static manuscript images
 ├── environment.yml
