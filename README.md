@@ -81,20 +81,6 @@ Static images used in manuscript figures.
 conda env create -f environment.yml
 conda activate eye_vs_face
 ```
-
----
-
-## Execution Order (Recommended)
-
-1. `generate_svds.ipynb`
-2. `geom_to_deg_saccade.ipynb`
-3. `run_predictions.ipynb`
-4. `tuning_curves.ipynb`
-5. `keypoints_prediction.ipynb`
-6. `saccade_video.ipynb`
-
-Run notebooks top to bottom without skipping cells.
-
 ---
 
 ## Reproducibility Notes
