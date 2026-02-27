@@ -99,3 +99,26 @@ Creates a video visualization of saccades aligned with relevant behavioral data.
 * Exported video file (e.g., `.mp4`) saved in paper/data/saccade_data.
 
 ---
+
+### 7. `saccade_detection.ipynb`
+
+**Purpose:**
+Initial saccade detection and label generation.
+
+**Description:**
+Uses the pretrained model (Andersson weights) to generate initial saccade predictions from behavioral videos. These predictions are used as provisional labels, which are subsequently refined in Facemap software before being used for fine-tuning.
+
+**Workflow Context:**
+
+1. Run the pretrained model to generate saccade predictions.
+2. Export predicted labels.
+3. Manually refine labels in Facemap.
+4. Use refined labels for downstream model fine-tuning (`run_predictions.ipynb`).
+
+**Output:**
+
+* Exported files for refinement in Facemap
+* Saved results in `paper/data/saccade_labels/`
+
+---
+
