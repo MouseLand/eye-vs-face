@@ -44,7 +44,7 @@ def set_path(data_path):
     global BASE_FOLDER, npz_data
     BASE_FOLDER = data_path
     mname = 'TX143'
-    _, _, _, _, _, _, _, npz_data = load_data(f"{BASE_FOLDER}data/mouse_data/{mname}/{datexp}/", mname, datexp)
+    _, _, _, _, _, _, _, npz_data = load_data(f"{BASE_FOLDER}data/npz_data/", mname, datexp)
 
 
 def plot(data_path):

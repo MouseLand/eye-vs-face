@@ -44,97 +44,6 @@ def plot(data_path, recording_type, mname):
     set_path(data_path)
     raster_plot_light_predictions(recording_type, mname)
 
-def get_behavioral_data(recording_type):
-
-    if recording_type == 'static':
-        dbs = get_light_static_info() 
-        mname = 'TX140'
-    else:
-        dbs = get_light_random_info() 
-        mname = 'TX144' 
-
-    datexp = [entry['datexp'] for entry in dbs if entry['mname'] == mname][0]
-
-    # Check if file exists 
-    if os.path.exists(f"{BASE_FOLDER}data/mouse_data/{mname}/{datexp}/{mname}_{datexp}_rasterdata.npz"):
-        data = np.load(f"{BASE_FOLDER}data/mouse_data/{mname}/{datexp}/{mname}_{datexp}_rasterdata.npz", allow_pickle=True)
-        X_embedding = data['X_embedding']
-        aligned_saccades = data['aligned_saccades']
-        pupil_x = data['pupil_x']
-        pupil_y = data['pupil_y']
-        exact_saccades = data['exact_saccades']
-        pupil_timestamp = data['pupil_timestamp']
-        spks_timestamp = data['spks_timestamp']
-        motSVD = data['motSVD']
-
-    else:
-        sys.path.append(f"{BASE_FOLDER}analysis/code/")
-        import helper_functions
-        _, _, _, _, _, _, _, npz_data = load_data(f"{BASE_FOLDER}data/mouse_data/{mname}/{datexp}/", mname, datexp)
-        spks = []
-        for block_idx in range(1): # CHANGE THIS IDX
-            block = list(npz_data['tcam'].item().keys())[block_idx]
-            # Resample behavior data to neural timestamps
-            spks.append(helper_funtions.segment_data(npz_data['spks'].T, npz_data['neural_frames_list'], block_idx).T)
-        spks = np.concatenate(spks, axis=1)
-
-        pupil_x = npz_data['pupil_x_small']
-        pupil_y = npz_data['pupil_y_small']
-        blink = npz_data['blink_small']
-        
-        blocks = list(npz_data['tcam'].item())
-        blk = blocks[0].split('blk')[1]
-        blink_baselined_threshold = float([entry['blink_baselined_threshold'] for entry in dbs if entry['mname'] == mname and entry['blk']==blk][0])
-
-        # Baseline correction for blink artifacts
-        blink_baselined = gaussian_filter(blink, 10)
-        blink_baselined = minimum_filter1d(blink_baselined, 5)
-        blink_baselined = maximum_filter1d(blink_baselined, 5)
-        blink_baselined = blink - blink_baselined
-        pupil_x_filtered = helper_functions.interpolate_pupil_blink(pupil_x, blink_baselined, blink_baselined_threshold)
-        pupil_y_filtered = helper_functions.interpolate_pupil_blink(pupil_y, blink_baselined, blink_baselined_threshold)
-        pupil_timestamp = npz_data['tcam'].item()['blk1']
-        spks_timestamp = npz_data['tneural'].item()['blk1']
-
-        # Filter out high-frequency noise in pupil data
-        cutoff_freq = 1.5 # Adjust this value depending on the movement frequency you want to filter out (in Hz)
-        tmin = np.min(pupil_timestamp)
-        cam_time = (pupil_timestamp - tmin) * 24 * 60 * 60
-        sampling_rate = (1 / np.mean(np.diff(cam_time))).astype(int)
-        pupil_x_filtered = helper_functions.butter_lowpass_filter(pupil_x_filtered, cutoff_freq, sampling_rate)
-        pupil_y_filtered = helper_functions.butter_lowpass_filter(pupil_y_filtered, cutoff_freq, sampling_rate)
-
-        speed_threshold_percentile = float([entry['speed_threshold'] for entry in dbs if entry['mname'] == mname and entry['blk']==blk][0]) 
-        Ssac, Esac = helper_functions.detect_saccades(pupil_x_filtered, pupil_y_filtered, pupil_timestamp, speed_threshold_percentile)
-        Sblk, Eblk = helper_functions.detect_blinks(blink_baselined, pupil_timestamp, blink_baselined_threshold)
-        # Filter any saccades that are between blinks
-        Esac, Eblk = np.array(Esac), np.array(Eblk)
-        start_saccades = Esac[:, -2]
-        end_saccades = Esac[:, -2]
-        start_blinks = Eblk[:, -2]
-        end_blinks = Eblk[:, -2]
-        filtered_saccades = []
-        for i in range(len(Esac)):
-            if not any((start_saccades[i] >= start_blinks-10) & (start_saccades[i] <= end_blinks+10)): ### Change this to 0.5 seconds before and after; and get derivative of blink to get blink_start
-                filtered_saccades.append(Esac[i])
-        filtered_saccades = np.array(filtered_saccades)
-
-        saccade_regions = []
-        for sac in filtered_saccades:
-            start, end = sac[-2].astype(int), sac[-1].astype(int)
-            saccade_regions.append((start, end))
-        exact_saccades = helper_functions.find_exact_saccade_indices(saccade_regions, pupil_x, pupil_y, pupil_timestamp, threshold=speed_threshold_percentile)
-
-        model = Rastermap().fit(zscore(spks.copy(), axis=1))
-        y = model.embedding # neurons x 1
-        isort = model.isort
-        X_embedding = zscore(utils.bin1d(spks[isort], bin_size=200, axis=0), axis=1)
-        
-        # Save data to npz file 
-        motSVD = npz_data['face_svd'].item()['motSVD'][0]
-
-    return X_embedding, pupil_x, pupil_y, exact_saccades, pupil_timestamp, spks_timestamp, motSVD
-
 def remove_spines(ax):
     for loc, spine in ax.spines.items():
         spine.set_linewidth(0)
@@ -152,7 +61,7 @@ def raster_plot_light_predictions(recording_type, mname):
     rastermap_out = np.load(f"{BASE_FOLDER}data/figure_data/light{recording_type}_rastermap_out_udcnv.npy", allow_pickle=True).item()
 
     datexp = [db['datexp'] for db in dbs if db['mname'] == mname][0]
-    _, _, _, _, _, _, _, npz_data = load_data(f"{BASE_FOLDER}data/mouse_data/{mname}/{datexp}/", mname, datexp)
+    _, _, _, _, _, _, _, npz_data = load_data(f"{BASE_FOLDER}data/npz_data/", mname, datexp)
    
     # Get isort if saved 
     data = np.load(f"{BASE_FOLDER}data/rasterdata/{mname}_{datexp}_rasterdata_udcnv.npz", allow_pickle=True)

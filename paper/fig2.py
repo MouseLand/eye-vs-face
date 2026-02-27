@@ -658,13 +658,8 @@ def raster_plot_predictions(fig, gs, recording_type="dark"):
         raise ValueError("Invalid recording type. Only 'dark' is supported.")
 
     datexp = [db['datexp'] for db in dbs if db['mname'] == mname][0]
-    if mname in ['FXa10', 'FXa8', 'FXa9', 'FXa1']:
-        spks, _, _, _, _, cumframes_neural, cumframes_cam, npz_data = load_data(f'{BASE_FOLDER}data/mouse_data/{mname}/{datexp}/{1}', mname, datexp) # different base folder for these mice
-    else:
-        _, _, _, _, _, _, _, npz_data = load_data(f'{BASE_FOLDER}data/mouse_data/{mname}/{datexp}', mname, datexp)
-        # Load spks using the new deconvolution method (udcnv)
-        spks_udcnv_file = f"{BASE_FOLDER}data/neural_data_udcnv/{mname}_{datexp}_1_spks.npz"
-        spks = np.load(spks_udcnv_file)['spks']
+    spks, _, _, _, _, cumframes_neural, cumframes_cam, npz_data = load_data(f'{BASE_FOLDER}data/npz_data/', mname, datexp) 
+
 
     frames_per_folder = npz_data['cam_frames_list']
     pupil_x = npz_data['pupil_x_polar']

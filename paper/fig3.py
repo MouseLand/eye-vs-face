@@ -191,10 +191,7 @@ def plot_behavior_traces(gs):
     # Load the data
     datexp = [entry['datexp'] for entry in dbs if entry['mname'] == mname][0]
     # Load data
-    if mname in ['FXa10', 'FXa8', 'FXa9', 'FXa1']:
-        spks, _, _, _, _, cumframes_neural, cumframes_cam, npz_data = load_data(f"{BASE_FOLDER}data/mouse_data/{mname}/{datexp}/{1}", mname, datexp) # different base folder for these mice
-    else:
-        _, _, _, _, _, _, _, npz_data = load_data(f"{BASE_FOLDER}data/mouse_data/{mname}/{datexp}", mname, datexp)
+    _, _, _, _, _, _, _, npz_data = load_data(f"{BASE_FOLDER}data/npz_data/", mname, datexp)
             
     pupil_x = npz_data['pupil_x_small']
     pupil_y = npz_data['pupil_y_small']
@@ -326,10 +323,7 @@ def plot_saccade_frequency_during_whisking_sniffing(gs):
                 # Get datexp 
                 datexp = [entry['datexp'] for entry in db if entry['mname'] == mname][0]
                 # Load data
-                if mname in ['FXa10', 'FXa8', 'FXa9', 'FXa1']:
-                    spks, _, _, _, _, _, _, npz_data = load_data(f'{BASE_FOLDER}data/mouse_data/{mname}/{datexp}/{1}', mname, datexp) # different base folder for these mice
-                else:
-                    _, _, _, _, _, _, _, npz_data = load_data(f'{BASE_FOLDER}data/mouse_data/{mname}/{datexp}', mname, datexp)
+                _, _, _, _, _, _, _, npz_data = load_data(f'{BASE_FOLDER}data/npz_data/', mname, datexp)
 
                 # segment the data into blocks
                 block_frames = npz_data['cam_frames_list']
@@ -1060,10 +1054,7 @@ def get_centroid_pc():
             datexp = [entry['datexp'] for entry in db if entry['mname'] == mname][0]
 
             # Load data
-            if mname in ['FXa10', 'FXa8', 'FXa9', 'FXa1']:  # gcamp8 recordings
-                _, _, _, _, _, _, _, npz_data = load_data(f'{BASE_FOLDER}data/mouse_data/{mname}/{datexp}/{1}', mname, datexp) # different base folder for these mice
-            else:
-                _, _, _, _, _, _, _, npz_data = load_data(f'{BASE_FOLDER}data/mouse_data/{mname}/{datexp}/', mname, datexp)
+            _, _, _, _, _, _, _, npz_data = load_data(f'{BASE_FOLDER}data/npz_data/', mname, datexp)
 
             # segment the data into blocks
             block_frames = npz_data['cam_frames_list']
@@ -1182,10 +1173,7 @@ def get_saccade_keypoints_relation():
             datexp = [entry['datexp'] for entry in db if entry['mname'] == mname][0]
 
             # Load data
-            if mname in ['FXa10', 'FXa8', 'FXa9', 'FXa1']:  # gcamp8 recordings
-                _, _, _, _, _, _, _, npz_data = load_data(f'{BASE_FOLDER}data/mouse_data/{mname}/{datexp}/{1}', mname, datexp) # different base folder for these mice
-            else:
-                _, _, _, _, _, _, _, npz_data = load_data(f'{BASE_FOLDER}data/mouse_data/{mname}/{datexp}/', mname, datexp)
+            _, _, _, _, _, _, _, npz_data = load_data(f'{BASE_FOLDER}data/npz_data/', mname, datexp)
 
             # segment the data into blocks
             block_frames = npz_data['cam_frames_list']
