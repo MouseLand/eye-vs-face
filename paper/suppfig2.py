@@ -1,5 +1,4 @@
 from fig3 import get_light_random_info, get_light_static_info, load_data
-from fig_utils import *
 import matplotlib.pyplot as plt 
 import numpy as np
 from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
@@ -12,6 +11,7 @@ from rastermap import Rastermap, utils
 import matplotlib.gridspec as gridspec
 from itertools import groupby
 
+
 LABEL_FONTSIZE = 12
 plt.rcParams['font.family'] = 'Arial'
 plt.rcParams['font.size'] = LABEL_FONTSIZE
@@ -20,6 +20,12 @@ plt.rcParams['axes.labelsize'] = LABEL_FONTSIZE
 plt.rcParams['xtick.labelsize'] = LABEL_FONTSIZE-1
 plt.rcParams['ytick.labelsize'] = LABEL_FONTSIZE-1
 plt.rcParams['legend.fontsize'] = LABEL_FONTSIZE
+plt.rcParams["savefig.dpi"] = 300
+plt.rcParams["axes.spines.top"] = False
+plt.rcParams["axes.spines.right"] = False
+plt.rcParams["axes.titlelocation"] = "left"
+plt.rcParams["axes.titleweight"] = "normal"
+
 pupil_label_color = 'green'
 face_eye_label_color = 'orange'
 face_eye_pupil_label_color = 'red'
@@ -27,7 +33,16 @@ pupil_x_color = 'darkgreen'
 pupil_y_color = 'lightgreen'
 
 # Set folder
-BASE_FOLDER = '/home/asyeda/stringerlab_dm11/eye-vs-face/'
+BASE_FOLDER = 'set_your_base_folder_here/' 
+
+def set_path(data_path):
+    global BASE_FOLDER
+    BASE_FOLDER = data_path
+
+def plot(data_path, recording_type, mname):
+    
+    set_path(data_path)
+    raster_plot_light_predictions(recording_type, mname)
 
 def get_behavioral_data(recording_type):
 
@@ -41,8 +56,8 @@ def get_behavioral_data(recording_type):
     datexp = [entry['datexp'] for entry in dbs if entry['mname'] == mname][0]
 
     # Check if file exists 
-    if os.path.exists(f"{BASE_FOLDER}data/{mname}_{datexp}_rasterdata.npz"):
-        data = np.load(f"{BASE_FOLDER}data/{mname}_{datexp}_rasterdata.npz", allow_pickle=True)
+    if os.path.exists(f"{BASE_FOLDER}data/mouse_data/{mname}/{datexp}/{mname}_{datexp}_rasterdata.npz"):
+        data = np.load(f"{BASE_FOLDER}data/mouse_data/{mname}/{datexp}/{mname}_{datexp}_rasterdata.npz", allow_pickle=True)
         X_embedding = data['X_embedding']
         aligned_saccades = data['aligned_saccades']
         pupil_x = data['pupil_x']
@@ -53,12 +68,14 @@ def get_behavioral_data(recording_type):
         motSVD = data['motSVD']
 
     else:
-        _, _, _, _, _, _, _, npz_data = load_data(f"{BASE_FOLDER}data/", mname, datexp)
+        sys.path.append(f"{BASE_FOLDER}analysis/code/")
+        import helper_functions
+        _, _, _, _, _, _, _, npz_data = load_data(f"{BASE_FOLDER}data/mouse_data/{mname}/{datexp}/", mname, datexp)
         spks = []
         for block_idx in range(1): # CHANGE THIS IDX
             block = list(npz_data['tcam'].item().keys())[block_idx]
             # Resample behavior data to neural timestamps
-            spks.append(helper_functions.segment_data(npz_data['spks'].T, npz_data['neural_frames_list'], block_idx).T)
+            spks.append(helper_funtions.segment_data(npz_data['spks'].T, npz_data['neural_frames_list'], block_idx).T)
         spks = np.concatenate(spks, axis=1)
 
         pupil_x = npz_data['pupil_x_small']
@@ -123,7 +140,6 @@ def remove_spines(ax):
         spine.set_linewidth(0)
 
 
-
 def raster_plot_light_predictions(recording_type, mname):
 
     if recording_type == 'static':
@@ -133,13 +149,13 @@ def raster_plot_light_predictions(recording_type, mname):
 
 
     # Load rastermap output from nonlinearmodel predictions
-    rastermap_out = np.load(f"{BASE_FOLDER}data/light{recording_type}_rastermap_out_udcnv.npy", allow_pickle=True).item()
+    rastermap_out = np.load(f"{BASE_FOLDER}data/figure_data/light{recording_type}_rastermap_out_udcnv.npy", allow_pickle=True).item()
 
     datexp = [db['datexp'] for db in dbs if db['mname'] == mname][0]
-    _, _, _, _, _, _, _, npz_data = load_data(f"{BASE_FOLDER}data/", mname, datexp)
+    _, _, _, _, _, _, _, npz_data = load_data(f"{BASE_FOLDER}data/mouse_data/{mname}/{datexp}/", mname, datexp)
    
     # Get isort if saved 
-    data = np.load(f"{BASE_FOLDER}data/{mname}_{datexp}_rasterdata_udcnv.npz", allow_pickle=True)
+    data = np.load(f"{BASE_FOLDER}data/rasterdata/{mname}_{datexp}_rasterdata_udcnv.npz", allow_pickle=True)
     isort = data['isort']
 
     # Load neural and pupil data
@@ -206,7 +222,7 @@ def raster_plot_light_predictions(recording_type, mname):
 
     print(x_test_pupil.shape, y_test_all.shape, y_pred_pupil_all.shape)
 
-    saccade_data = np.load(f'{BASE_FOLDER}data/saccade_times.npy', allow_pickle=True).item()
+    saccade_data = np.load(f'{BASE_FOLDER}data/saccade_data/saccade_times.npy', allow_pickle=True).item()
     aligned_saccades = []
     # Get saccades
     for i, block in enumerate(saccade_data["light_{}".format(recording_type)][mname].keys()):

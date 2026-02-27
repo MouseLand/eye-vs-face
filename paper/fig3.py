@@ -1,4 +1,3 @@
-from fig_utils import *
 import matplotlib.pyplot as plt 
 import os, sys
 import numpy as np
@@ -31,13 +30,26 @@ plt.rcParams['axes.labelsize'] = LABEL_FONTSIZE-1
 plt.rcParams['xtick.labelsize'] = LABEL_FONTSIZE-2
 plt.rcParams['ytick.labelsize'] = LABEL_FONTSIZE-2
 plt.rcParams['legend.fontsize'] = LABEL_FONTSIZE-2
+plt.rcParams["savefig.dpi"] = 300
+plt.rcParams["axes.spines.top"] = False
+plt.rcParams["axes.spines.right"] = False
+plt.rcParams["axes.titlelocation"] = "left"
+plt.rcParams["axes.titleweight"] = "normal"
+
 whisker_color = "#c92814ff"
 nose_color = "#6bfbbaff"
 
 # Set folder
-BASE_FOLDER = '/home/asyeda/stringerlab_dm11/eye-vs-face/'
+BASE_FOLDER = 'set_your_base_folder_here/' 
 
-def plot():
+def set_path(data_path):
+    global BASE_FOLDER
+    BASE_FOLDER = data_path
+
+def plot(data_path):
+    
+    set_path(data_path)
+
     fig = plt.figure(figsize=(14, 7), dpi=300)
     gs = GridSpec(4, 6, figure=fig)
 
@@ -57,8 +69,8 @@ def plot():
 
 def plot_mouse_face_keypoints(gs):
     ax = plt.subplot(gs)
-    keypoints_filepath = f'{BASE_FOLDER}data/TX123_2024_06_20_2_full_FacemapPose.h5'
-    video_path = f'{BASE_FOLDER}data/TX123_2024_06_20_2_full.mp4' 
+    keypoints_filepath = f'{BASE_FOLDER}data/mouse_data/TX123/2024_06_20/TX123_2024_06_20_2_full_FacemapPose.h5'
+    video_path = f'{BASE_FOLDER}data/mouse_data/TX123/2024_06_20/TX123_2024_06_20_2_full.mp4' 
 
     # Load the keypoints
     keypoints_data = utils.load_keypoints(refine_pose.BODYPARTS, keypoints_filepath)
@@ -80,7 +92,7 @@ def plot_mouse_face_keypoints(gs):
     ax.imshow(contrast_frame, cmap='gray')
 
     # Add pupil circle on eye 
-    proc_filepath = f"{BASE_FOLDER}data/TX123_2024_06_20_1_full_proc.npy"
+    proc_filepath = f"{BASE_FOLDER}data/mouse_data/TX123/2024_06_20/TX123_2024_06_20_1_full_proc.npy"
     proc_data = np.load(proc_filepath, allow_pickle=True).item()
     proc_frame_idx = frame_idx + 74081 # first block concatenated with second block
     frame = get_frame_by_index(video_path, frame_idx) 
@@ -179,7 +191,10 @@ def plot_behavior_traces(gs):
     # Load the data
     datexp = [entry['datexp'] for entry in dbs if entry['mname'] == mname][0]
     # Load data
-    _, _, _, _, _, _, _, npz_data = load_data(f"{BASE_FOLDER}data/", mname, datexp)
+    if mname in ['FXa10', 'FXa8', 'FXa9', 'FXa1']:
+        spks, _, _, _, _, cumframes_neural, cumframes_cam, npz_data = load_data(f"{BASE_FOLDER}data/mouse_data/{mname}/{datexp}/{1}", mname, datexp) # different base folder for these mice
+    else:
+        _, _, _, _, _, _, _, npz_data = load_data(f"{BASE_FOLDER}data/mouse_data/{mname}/{datexp}", mname, datexp)
             
     pupil_x = npz_data['pupil_x_small']
     pupil_y = npz_data['pupil_y_small']
@@ -263,8 +278,8 @@ def remove_spines(ax):
 
 def plot_saccade_frequency_during_whisking_sniffing(gs):
 
-    if os.path.exists(f'{BASE_FOLDER}data/saccade_orofacial_freq.npy'):
-        freq_data = np.load(f'{BASE_FOLDER}data/saccade_orofacial_freq.npy', allow_pickle=True).item()
+    if os.path.exists(f'{BASE_FOLDER}data/saccade_data/saccade_orofacial_freq.npy'):
+        freq_data = np.load(f'{BASE_FOLDER}data/saccade_data/saccade_orofacial_freq.npy', allow_pickle=True).item()
         whisking_saccade_freq = freq_data['whisking_saccade_freq']
         sniffing_saccade_freq = freq_data['sniffing_saccade_freq']
         saccade_freq = freq_data['saccade_freq']
@@ -279,7 +294,7 @@ def plot_saccade_frequency_during_whisking_sniffing(gs):
             f'{BASE_FOLDER}light_recordings_static']
         dbs = [dark_dbs, light_random_dbs, light_static_dbs]
         category = ['dark', 'light_random', 'light_static']
-        saccade_data = np.load(f'{BASE_FOLDER}data/saccade_times.npy', allow_pickle=True).item()
+        saccade_data = np.load(f'{BASE_FOLDER}data/saccade_data/saccade_times.npy', allow_pickle=True).item()
 
         BODYPARTS = [
             "eye(back)",
@@ -304,7 +319,6 @@ def plot_saccade_frequency_during_whisking_sniffing(gs):
         saccade_freq = []
 
         for db_idx, db in enumerate(dbs):
-            base_folder = base_folders[db_idx]
             # Get mouse list
             mouse_list = np.unique([entry['mname'] for entry in db])
             for mname in mouse_list:
@@ -312,7 +326,10 @@ def plot_saccade_frequency_during_whisking_sniffing(gs):
                 # Get datexp 
                 datexp = [entry['datexp'] for entry in db if entry['mname'] == mname][0]
                 # Load data
-                _, _, _, _, _, _, _, npz_data = load_data(f'{BASE_FOLDER}data/', mname, datexp)
+                if mname in ['FXa10', 'FXa8', 'FXa9', 'FXa1']:
+                    spks, _, _, _, _, _, _, npz_data = load_data(f'{BASE_FOLDER}data/mouse_data/{mname}/{datexp}/{1}', mname, datexp) # different base folder for these mice
+                else:
+                    _, _, _, _, _, _, _, npz_data = load_data(f'{BASE_FOLDER}data/mouse_data/{mname}/{datexp}', mname, datexp)
 
                 # segment the data into blocks
                 block_frames = npz_data['cam_frames_list']
@@ -333,12 +350,12 @@ def plot_saccade_frequency_during_whisking_sniffing(gs):
                     print('Processing block: ', blk)
                     # Get pupil timestamp
                     pupil_timestamp = npz_data['tcam'].item()[list(npz_data['tcam'].item())[blk_idx]]
-                    pupil_x = helper_functions.segment_data(npz_data["pupil_x_small"], block_frames, blk_idx)
-                    pupil_y = helper_functions.segment_data(npz_data["pupil_y_small"] , block_frames, blk_idx)
-                    pupil_area = helper_functions.segment_data(npz_data["pupil_area_small"], block_frames, blk_idx)
-                    pose_x_coord = helper_functions.segment_data(npz_data['pose_x_coord'].T, block_frames, blk_idx)
-                    pose_y_coord = helper_functions.segment_data(npz_data['pose_y_coord'].T, block_frames, blk_idx)
-                    blink = helper_functions.segment_data(npz_data["blink_small"], block_frames, blk_idx)
+                    pupil_x = segment_data(npz_data["pupil_x_small"], block_frames, blk_idx)
+                    pupil_y = segment_data(npz_data["pupil_y_small"] , block_frames, blk_idx)
+                    pupil_area = segment_data(npz_data["pupil_area_small"], block_frames, blk_idx)
+                    pose_x_coord = segment_data(npz_data['pose_x_coord'].T, block_frames, blk_idx)
+                    pose_y_coord = segment_data(npz_data['pose_y_coord'].T, block_frames, blk_idx)
+                    blink = segment_data(npz_data["blink_small"], block_frames, blk_idx)
                     pupil_xy = np.vstack((pupil_x, pupil_y)).T
 
                     # replace nan with interpolated values
@@ -411,7 +428,7 @@ def plot_saccade_frequency_during_whisking_sniffing(gs):
             'sniffing_saccade_freq': sniffing_saccade_freq,
             'saccade_freq': saccade_freq
         }
-        np.save(f'{BASE_FOLDER}data/saccade_orofacial_freq.npy', freq_data)
+        np.save(f'{BASE_FOLDER}data/saccade_data/saccade_orofacial_freq.npy', freq_data)
 
     ax = plt.subplot(gs)
     # Plot data points
@@ -480,7 +497,7 @@ def plot_keypoints_net(gs, filepath):
 def plot_correlation_matrix(gs):
 
     # Load data
-    data_dir = 'bodypart_group_results_zscore.npz'
+    data_dir = f'{BASE_FOLDER}data/saccade_data/bodypart_group_results_zscore.npz'
     results = np.load(data_dir, allow_pickle=True)
     results_df = pd.DataFrame({key: results[key] for key in results.keys()})
 
@@ -495,7 +512,7 @@ def plot_correlation_matrix(gs):
 def plot_correlation_matrix(gs):
 
     # Load data
-    data_dir = f'{BASE_FOLDER}data/bodypart_group_results_zscore.npz'
+    data_dir = f'{BASE_FOLDER}data/saccade_data/bodypart_group_results_zscore.npz'
     results = np.load(data_dir, allow_pickle=True)
     results_df = pd.DataFrame({key: results[key] for key in results.keys()})
 
@@ -577,7 +594,7 @@ def plot_correlation_matrix(gs):
 
 def plot_saccade_durations(gs):
     # Load data
-    data_dir = f'{BASE_FOLDER}saccade_data.npz'
+    data_dir = f'{BASE_FOLDER}data/saccade_data/saccade_durations.npz'
     saccade_data = np.load(data_dir, allow_pickle=True)
     saccade_durations = saccade_data['saccade_durations']
 
@@ -592,7 +609,7 @@ def plot_saccade_durations(gs):
 
 def plot_psth(gs):
     # Load data
-    keypoints_psth_path = f'{BASE_FOLDER}data/psth_whisker_nose_eye.npz'
+    keypoints_psth_path = f'{BASE_FOLDER}data/saccade_data/psth_whisker_nose_eye.npz'
     keypoints_psth_data = np.load(keypoints_psth_path, allow_pickle=True)
     mean_psth_whisker_all=keypoints_psth_data['mean_psth_whisker_all']
     mean_psth_nose_all=keypoints_psth_data['mean_psth_nose_all']
@@ -766,7 +783,7 @@ def plot_psth(gs):
             y_base = y_pos  # update base for next bar
 
     # Load running psth data
-    running_psth_path = f'{BASE_FOLDER}data/psth_running.npz'
+    running_psth_path = f'{BASE_FOLDER}data/saccade_data/psth_running.npz'
     running_psth_data = np.load(running_psth_path, allow_pickle=True)
     random_avg_running = running_psth_data['random_avg_running']/10
     pre_avg_running = running_psth_data['pre_avg_running']/10
@@ -1003,30 +1020,16 @@ def add_significance_bar(ax, x1, x2, y, p, height=0.01, color='k', linewidth=1, 
     ax.text((x1 + x2) / 2, y+text_offset, significance,
             ha='center', va='bottom', color=color, fontsize=fontsize)
 
-"""
-def add_significance_bar(ax, x1, x2, y, p, height_factor=0.1, color='black'):
-    #Add significance bar and annotation
-    ax.plot([x1, x1, x2, x2], 
-            [y, y + height_factor, y + height_factor, y], 
-            color=color, lw=1)
-    p_text = '***' if p < 0.001 else '**' if p < 0.01 else '*' if p < 0.05 else f'n.s'
-    ax.text((x1+x2)/2, y + height_factor, p_text, 
-            ha='center', fontsize=LABEL_FONTSIZE, color=color)
-        """
+
 def get_centroid_pc():
 
-    dark_dbs = pdh.carbachol_in_dark() 
-    light_random_dbs = pdh.get_light_random_info()
-    light_static_dbs = pdh.get_light_static_info()
-    base_folders = [
-        f'{BASE_FOLDER}dark_recordings',
-        f'{BASE_FOLDER}light_recordings_random',
-        f'{BASE_FOLDER}light_recordings_static']
+    dark_dbs = carbachol_in_dark() 
+    light_random_dbs = get_light_random_info()
+    light_static_dbs = get_light_static_info()
     dbs = [dark_dbs, light_random_dbs, light_static_dbs]
     category = ['dark', 'light_random', 'light_static']
 
-
-    data_dir = f'{BASE_FOLDER}saccade_times.npy'
+    data_dir = f'{BASE_FOLDER}data/saccade_data/saccade_times.npy'
     saccade_data = np.load(data_dir, allow_pickle=True).item()
 
     BODYPARTS = [
@@ -1050,7 +1053,6 @@ def get_centroid_pc():
     # Initialize a dictionary to store saccade information
     plot_data = {}
     for db_idx, db in enumerate(dbs):
-        base_folder = base_folders[db_idx]
         mouse_list = np.unique([entry['mname'] for entry in db])
         plot_data[category[db_idx]] = {}
         for mname in mouse_list:
@@ -1059,9 +1061,9 @@ def get_centroid_pc():
 
             # Load data
             if mname in ['FXa10', 'FXa8', 'FXa9', 'FXa1']:  # gcamp8 recordings
-                _, _, _, _, _, _, _, npz_data = nonlinear_modelv3.load_data(f'/home/asyeda/nas113/Atika/{mname}/{datexp}/{1}', mname, datexp) # different base folder for these mice
+                _, _, _, _, _, _, _, npz_data = load_data(f'{BASE_FOLDER}data/mouse_data/{mname}/{datexp}/{1}', mname, datexp) # different base folder for these mice
             else:
-                _, _, _, _, _, _, _, npz_data = nonlinear_modelv3.load_data(base_folder, mname, datexp)
+                _, _, _, _, _, _, _, npz_data = load_data(f'{BASE_FOLDER}data/mouse_data/{mname}/{datexp}/', mname, datexp)
 
             # segment the data into blocks
             block_frames = npz_data['cam_frames_list']
@@ -1082,8 +1084,8 @@ def get_centroid_pc():
                 print('Processing block: ', category[db_idx], [mname], [str(blk)])
                 plot_data[category[db_idx]][mname][str(blk)] = {}
 
-                pose_x = helper_functions.segment_data(npz_data["pose_x_coord"].T, block_frames, blk_idx)
-                pose_y = helper_functions.segment_data(npz_data["pose_y_coord"].T, block_frames, blk_idx)
+                pose_x = segment_data(npz_data["pose_x_coord"].T, block_frames, blk_idx)
+                pose_y = segment_data(npz_data["pose_y_coord"].T, block_frames, blk_idx)
                 whisker_x = np.nanmean(pose_x[:, -3:], axis=1)
                 whisker_y = np.nanmean(pose_y[:, -3:], axis=1)
                 nose_x = np.nanmean(pose_x[:, 6:10], axis=1)
@@ -1127,7 +1129,7 @@ def get_saccade_keypoints_relation():
     category = ['dark', 'light_random', 'light_static']
 
 
-    data_dir = f'{BASE_FOLDER}data/saccade_times.npy'
+    data_dir = f'{BASE_FOLDER}data/saccade_data/saccade_times.npy'
     saccade_data = np.load(data_dir, allow_pickle=True).item()
 
     BODYPARTS = [
@@ -1181,9 +1183,9 @@ def get_saccade_keypoints_relation():
 
             # Load data
             if mname in ['FXa10', 'FXa8', 'FXa9', 'FXa1']:  # gcamp8 recordings
-                _, _, _, _, _, _, _, npz_data = nonlinear_modelv3.load_data(f'/home/asyeda/nas113/Atika/{mname}/{datexp}/{1}', mname, datexp) # different base folder for these mice
+                _, _, _, _, _, _, _, npz_data = load_data(f'{BASE_FOLDER}data/mouse_data/{mname}/{datexp}/{1}', mname, datexp) # different base folder for these mice
             else:
-                _, _, _, _, _, _, _, npz_data = nonlinear_modelv3.load_data(base_folder, mname, datexp)
+                _, _, _, _, _, _, _, npz_data = load_data(f'{BASE_FOLDER}data/mouse_data/{mname}/{datexp}/', mname, datexp)
 
             # segment the data into blocks
             block_frames = npz_data['cam_frames_list']
@@ -1203,8 +1205,8 @@ def get_saccade_keypoints_relation():
                     continue
                 print('Processing block: ', category[db_idx], [mname],[str(blk)])
 
-                pose_x = helper_functions.segment_data(npz_data["pose_x_coord"].T, block_frames, blk_idx)
-                pose_y = helper_functions.segment_data(npz_data["pose_y_coord"].T, block_frames, blk_idx)
+                pose_x = segment_data(npz_data["pose_x_coord"].T, block_frames, blk_idx)
+                pose_y = segment_data(npz_data["pose_y_coord"].T, block_frames, blk_idx)
                 saccade_info = saccade_data[category[db_idx]][mname][str(blk)]
                 whisker_x = np.nanmean(pose_x[:, -3:], axis=1)
                 whisker_y = np.nanmean(pose_y[:, -3:], axis=1)
@@ -1262,14 +1264,14 @@ def get_saccade_keypoints_relation():
     df['nose_dy'] = df['nose_y_end'] - df['nose_y_start'] #df['nose_pc2_end'] - df['nose_pc2_start']
 
     # save df 
-    df.to_csv(f'{BASE_FOLDER}data/saccade_keypoints_relation.csv', index=False, header=True, mode='w')
+    df.to_csv(f'{BASE_FOLDER}data/saccade_data/saccade_keypoints_relation.csv', index=False, header=True, mode='w')
 
     return df
 
 def plot_saccade_direction_relations(gs):
 
-    if os.path.exists(f'{BASE_FOLDER}data/saccade_keypoints_relation.csv'):
-        df = pd.read_csv(f'{BASE_FOLDER}data/saccade_keypoints_relation.csv')
+    if os.path.exists(f'{BASE_FOLDER}data/saccade_data/saccade_keypoints_relation.csv'):
+        df = pd.read_csv(f'{BASE_FOLDER}data/saccade_data/saccade_keypoints_relation.csv')
     else:
         df = get_saccade_keypoints_relation()
 
@@ -1408,8 +1410,8 @@ def plot_saccade_direction_relations(gs):
                     ha='left', va='center', fontsize=LABEL_FONTSIZE-2, color='k', rotation=-90)
 
 def check_mouse_saccade_direction_relations():
-    if os.path.exists('saccade_keypoints_relation.csv'):
-        df = pd.read_csv('saccade_keypoints_relation.csv')
+    if os.path.exists(f'{BASE_FOLDER}data/saccade_data/saccade_keypoints_relation.csv'):
+        df = pd.read_csv(f'{BASE_FOLDER}data/saccade_data/saccade_keypoints_relation.csv')
     else:
         df = get_saccade_keypoints_relation()
 
@@ -1486,7 +1488,7 @@ def check_mouse_saccade_direction_relations():
 
 def plot_prediction_traces(gs):
     # Load trace data to plot in fig.3 
-    data = np.load(f"{BASE_FOLDER}data/pred_traces_zscore.npy", allow_pickle=True).item()
+    data = np.load(f"{BASE_FOLDER}data/saccade_data/pred_traces_zscore.npy", allow_pickle=True).item()
     whisker_color = "#c92814ff"
     nose_color = "#6bfbbaff"
     pupil_x_color = 'darkgreen'
@@ -1587,6 +1589,10 @@ def plot_prediction_traces(gs):
             dx=0, dy=arrow_y_end - arrow_y_start,
             width=0.015, color='k', alpha=0.7
         ))
+
+def segment_data(data, frames_per_folder, idx):
+    idx = np.arange(sum(frames_per_folder[:idx]), sum(frames_per_folder[:idx+1])) 
+    return data[idx]
 
 def load_data(base_folder, mname, datexp):
     npz_data = np.load(f"{base_folder}/{mname}_{datexp}_{1}.npz", allow_pickle=True)

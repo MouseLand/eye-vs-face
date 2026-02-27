@@ -1,6 +1,5 @@
 
 from fig3 import get_light_random_info, get_light_static_info
-from fig_utils import *
 import matplotlib.pyplot as plt 
 import os, sys
 import numpy as np
@@ -21,6 +20,12 @@ plt.rcParams['axes.labelsize'] = LABEL_FONTSIZE
 plt.rcParams['xtick.labelsize'] = LABEL_FONTSIZE-1
 plt.rcParams['ytick.labelsize'] = LABEL_FONTSIZE-1
 plt.rcParams['legend.fontsize'] = LABEL_FONTSIZE
+plt.rcParams["savefig.dpi"] = 300
+plt.rcParams["axes.spines.top"] = False
+plt.rcParams["axes.spines.right"] = False
+plt.rcParams["axes.titlelocation"] = "left"
+plt.rcParams["axes.titleweight"] = "normal"
+
 pupil_label_color = 'green'
 face_eye_label_color = 'orange'
 face_eye_pupil_label_color = 'red'
@@ -28,9 +33,16 @@ rand_stat_colors = ['#6a0dad', '#008080']
 rand_stat_color_names = ['random', 'static']
 
 # Set folder
-BASE_FOLDER = '/home/asyeda/stringerlab_dm11/eye-vs-face/'
+BASE_FOLDER = 'set_your_base_folder_here/' 
 
-def plot():
+def set_path(data_path):
+    global BASE_FOLDER
+    BASE_FOLDER = data_path
+
+def plot(data_path):
+    
+    set_path(data_path)
+
     fig = plt.figure(figsize=(14, 7), dpi=300)
     gs = GridSpec(2, 1, figure=fig)
 
@@ -112,7 +124,7 @@ def plot_num_neurons_per_region(ax, recording_type, ylabel):
 
 def plot_maps_summary(fig, gs, recording_type):
     if recording_type == 'static':
-        nonlinear_results = np.load(f"{BASE_FOLDER}data/nonlinear_lightstatic_results_udcnv.npy", allow_pickle=True).item()
+        nonlinear_results = np.load(f"{BASE_FOLDER}data/figure_data/nonlinear_lightstatic_results_udcnv.npy", allow_pickle=True).item()
         dbs = get_light_static_info() 
         mouse_list = np.unique([db['mname'] for db in dbs])
         # remove TX150 b/c different sampling rate recording
@@ -120,7 +132,7 @@ def plot_maps_summary(fig, gs, recording_type):
         mname = 'TX143'
         blk = '2' if mname != "TX143" else '3'
     else:
-        nonlinear_results = np.load(f"{BASE_FOLDER}data/nonlinear_lightrandom_results_udcnv.npy", allow_pickle=True).item()
+        nonlinear_results = np.load(f"{BASE_FOLDER}data/figure_data/nonlinear_lightrandom_results_udcnv.npy", allow_pickle=True).item()
         dbs = get_light_random_info()
         mouse_list = np.unique([db['mname'] for db in dbs])
         mname = 'TX143'
@@ -206,10 +218,10 @@ def plot_maps_summary(fig, gs, recording_type):
 def plot_varexp_comparison(ax, recording_type):
     """Plot paired comparison of Face w/o eye vs Pupil variance explained per region."""
     if recording_type == 'static':  
-        nonlinear_results = np.load(f"{BASE_FOLDER}data/nonlinear_lightstatic_results_udcnv.npy", allow_pickle=True).item()
+        nonlinear_results = np.load(f"{BASE_FOLDER}data/figure_data/nonlinear_lightstatic_results_udcnv.npy", allow_pickle=True).item()
         dbs = get_light_static_info()
     else:
-        nonlinear_results = np.load(f"{BASE_FOLDER}data/nonlinear_lightrandom_results_udcnv.npy", allow_pickle=True).item()
+        nonlinear_results = np.load(f"{BASE_FOLDER}data/figure_data/nonlinear_lightrandom_results_udcnv.npy", allow_pickle=True).item()
         dbs = get_light_random_info()
 
     mouse_list = [m for m in np.unique([db['mname'] for db in dbs]) if m != "TX150"]
@@ -335,10 +347,10 @@ def add_sig_bar(ax, x1, x2, y, pval, h=0.001):
 
 def plot_varexp(ax, recording_type, behav_key, ylabel):
     if recording_type == 'static':  
-        nonlinear_results_lightstatic = np.load(f"{BASE_FOLDER}data/nonlinear_lightstatic_results_udcnv.npy", allow_pickle=True).item()
+        nonlinear_results_lightstatic = np.load(f"{BASE_FOLDER}data/figure_data/nonlinear_lightstatic_results_udcnv.npy", allow_pickle=True).item()
         dbs = get_light_static_info()
     else:
-        nonlinear_results_lightstatic = np.load(f"{BASE_FOLDER}data/nonlinear_lightrandom_results_udcnv.npy", allow_pickle=True).item()
+        nonlinear_results_lightstatic = np.load(f"{BASE_FOLDER}data/figure_data/nonlinear_lightrandom_results_udcnv.npy", allow_pickle=True).item()
         dbs = get_light_random_info()
 
     mouse_list = np.unique([db['mname'] for db in dbs])

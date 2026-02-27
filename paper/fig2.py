@@ -1,4 +1,3 @@
-from fig_utils import *
 import matplotlib.pyplot as plt 
 import os, sys
 import numpy as np
@@ -16,6 +15,7 @@ import cv2
 from sklearn.decomposition import PCA
 from scipy import interpolate 
 
+
 LABEL_FONTSIZE = 12
 plt.rcParams['font.family'] = 'Arial'
 plt.rcParams['font.size'] = LABEL_FONTSIZE
@@ -24,13 +24,26 @@ plt.rcParams['axes.labelsize'] = LABEL_FONTSIZE
 plt.rcParams['xtick.labelsize'] = LABEL_FONTSIZE-1
 plt.rcParams['ytick.labelsize'] = LABEL_FONTSIZE-1
 plt.rcParams['legend.fontsize'] = LABEL_FONTSIZE
+plt.rcParams["savefig.dpi"] = 300
+plt.rcParams["axes.spines.top"] = False
+plt.rcParams["axes.spines.right"] = False
+plt.rcParams["axes.titlelocation"] = "left"
+plt.rcParams["axes.titleweight"] = "normal"
+
 pupil_x_color = 'darkgreen'
 pupil_y_color = 'lightgreen'
 
 # Set folder
-BASE_FOLDER = '/home/asyeda/stringerlab_dm11/eye-vs-face/'
+BASE_FOLDER = 'set_your_base_folder_here/' 
 
-def plot():
+def set_path(data_path):
+    global BASE_FOLDER
+    BASE_FOLDER = data_path
+
+def plot(data_path):
+    
+    set_path(data_path)
+
     fig = plt.figure(figsize=(14, 7), dpi=300)
     gs = GridSpec(2, 4, figure=fig, hspace=.15, wspace=0.2, width_ratios=[1, 1.2, 1.2, .7])
 
@@ -48,11 +61,11 @@ def plot():
     plt.show()
 
 def plot_illustration(gs, fp):
-    before_carbachol_video = f"{BASE_FOLDER}data/LZ14_2024_06_20_1_full.mp4"
-    after_carbachol_video = f"{BASE_FOLDER}data/LZ14_2024_06_20_2_full.mp4"
-    before_eye_video = f"{BASE_FOLDER}data/LZ14_2024_06_20_1_small.mp4"
-    after_eye_video = f"{BASE_FOLDER}data/LZ14_2024_06_20_2_small.mp4"
-    after_small_proc = f"{BASE_FOLDER}data/LZ14_2024_06_20_2_small_proc.npy"
+    before_carbachol_video = f"{BASE_FOLDER}data/mouse_data/LZ14/2024_06_20/LZ14_2024_06_20_1_full.mp4"
+    after_carbachol_video = f"{BASE_FOLDER}data/mouse_data/LZ14/2024_06_20/LZ14_2024_06_20_2_full.mp4"
+    before_eye_video = f"{BASE_FOLDER}data/mouse_data/LZ14/2024_06_20/LZ14_2024_06_20_1_small.mp4"
+    after_eye_video = f"{BASE_FOLDER}data/mouse_data/LZ14/2024_06_20/LZ14_2024_06_20_2_small.mp4"
+    after_small_proc = f"{BASE_FOLDER}data/mouse_data/LZ14/2024_06_20/LZ14_2024_06_20_2_small_proc.npy"
     before_idx, after_idx = 26749, 14000 #68414
     alpha = 3 # Contrast multiplier
     beta = 1    # Brightness offset (can be removed or adjusted)
@@ -245,7 +258,7 @@ def remove_spines(ax):
 
 def plot_varexp_lineplot(gs):
 
-    nonlinear_results = np.load(f"{BASE_FOLDER}data/nonlinear_dark_results_udcnv.npy", allow_pickle=True).item()
+    nonlinear_results = np.load(f"{BASE_FOLDER}data/figure_data/nonlinear_dark_results_udcnv.npy", allow_pickle=True).item()
 
     # Plot line plot
     input_labels = ['Pupil position', 'Face w/o eye','Face w/o eye\n+ pupil position']
@@ -425,7 +438,7 @@ def carbachol_in_dark():
 def plot_varexp_curve(gs):
 
     dbs = carbachol_in_dark()
-    nonlinear_results = np.load(f"{BASE_FOLDER}data/nonlinear_dark_results_udcnv.npy", allow_pickle=True).item()
+    nonlinear_results = np.load(f"{BASE_FOLDER}data/figure_data/nonlinear_dark_results_udcnv.npy", allow_pickle=True).item()
     mouse_list = np.unique([entry['mname'] for entry in dbs])
 
     # Define the figure with specified size and higher DPI for better quality
@@ -553,7 +566,7 @@ def plot_fve_prepost_carbachol(gs):
     pre_fve_all = []
     post_fve_all = []
 
-    carbachol_pc_fve = np.load(f"{BASE_FOLDER}data/carbachol_pc_fve.npz", allow_pickle=True)
+    carbachol_pc_fve = np.load(f"{BASE_FOLDER}data/figure_data/carbachol_pc_fve.npz", allow_pickle=True)
     pre_fve_all = carbachol_pc_fve['pre_fve_all']
     post_fve_all = carbachol_pc_fve['post_fve_all']
 
@@ -638,18 +651,21 @@ def plot_fve_prepost_carbachol(gs):
 def raster_plot_predictions(fig, gs, recording_type="dark"):
 
     if recording_type == 'dark':
-        rastermap_out = np.load(f"{BASE_FOLDER}data/rastermap_out_dark_udcnv.npy", allow_pickle=True).item()
+        rastermap_out = np.load(f"{BASE_FOLDER}data/figure_data/rastermap_out_dark_udcnv.npy", allow_pickle=True).item()
         dbs = carbachol_in_dark()
         mname = 'LZ14' 
     else:
         raise ValueError("Invalid recording type. Only 'dark' is supported.")
 
     datexp = [db['datexp'] for db in dbs if db['mname'] == mname][0]
-    _, _, _, tcams, tneurals, cumframes_neural, cumframes_cam, npz_data = load_data(f"{BASE_FOLDER}data/", mname, datexp)
+    if mname in ['FXa10', 'FXa8', 'FXa9', 'FXa1']:
+        spks, _, _, _, _, cumframes_neural, cumframes_cam, npz_data = load_data(f'{BASE_FOLDER}data/mouse_data/{mname}/{datexp}/{1}', mname, datexp) # different base folder for these mice
+    else:
+        _, _, _, _, _, _, _, npz_data = load_data(f'{BASE_FOLDER}data/mouse_data/{mname}/{datexp}', mname, datexp)
+        # Load spks using the new deconvolution method (udcnv)
+        spks_udcnv_file = f"{BASE_FOLDER}data/neural_data_udcnv/{mname}_{datexp}_1_spks.npz"
+        spks = np.load(spks_udcnv_file)['spks']
 
-    # Load spks using the new deconvolution method (udcnv)
-    spks_udcnv_file = f"{BASE_FOLDER}data/neural_data_udcnv/{mname}_{datexp}_1_spks.npz"
-    spks = np.load(spks_udcnv_file)['spks']
     frames_per_folder = npz_data['cam_frames_list']
     pupil_x = npz_data['pupil_x_polar']
     pupil_y = npz_data['pupil_y_polar']
@@ -729,12 +745,12 @@ def raster_plot_predictions(fig, gs, recording_type="dark"):
 
     # Run rastermap 
     # check if isort saved
-    if os.path.exists(f"{BASE_FOLDER}data/{mname}_{datexp}_rastermap_isort.npy"):
-        isort = np.load(f"{BASE_FOLDER}data/{mname}_{datexp}_rastermap_isort.npy")
+    if os.path.exists(f"{BASE_FOLDER}data/mouse_data/{mname}/{datexp}/{mname}_{datexp}_rastermap_isort.npy"):
+        isort = np.load(f"{BASE_FOLDER}data/mouse_data/{mname}/{datexp}/{mname}_{datexp}_rastermap_isort.npy")
     else:
         model = Rastermap().fit(zscore(spks, axis=1).copy())
         isort = model.isort
-        np.save(f"{BASE_FOLDER}data/{mname}_{datexp}_rastermap_isort.npy", isort)
+        np.save(f"{BASE_FOLDER}data/mouse_data/{mname}/{datexp}/{mname}_{datexp}_rastermap_isort.npy", isort)
 
     # z-score the predicted data using mean and std of test data
     y_test_mean = np.nanmean(y_test_all, axis=1, keepdims=True)

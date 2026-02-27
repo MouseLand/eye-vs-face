@@ -1,5 +1,4 @@
 from fig3 import get_light_static_info, load_data
-from fig_utils import *
 import matplotlib.pyplot as plt 
 import os, sys
 import numpy as np
@@ -18,7 +17,6 @@ import pandas as pd
 import seaborn as sns
 import cv2
 
-
 LABEL_FONTSIZE = 12
 plt.rcParams['font.family'] = 'Arial'
 plt.rcParams['font.size'] = LABEL_FONTSIZE
@@ -27,17 +25,32 @@ plt.rcParams['axes.labelsize'] = LABEL_FONTSIZE
 plt.rcParams['xtick.labelsize'] = LABEL_FONTSIZE-1
 plt.rcParams['ytick.labelsize'] = LABEL_FONTSIZE-1
 plt.rcParams['legend.fontsize'] = LABEL_FONTSIZE
+plt.rcParams["savefig.dpi"] = 300
+plt.rcParams["axes.spines.top"] = False
+plt.rcParams["axes.spines.right"] = False
+plt.rcParams["axes.titlelocation"] = "left"
+plt.rcParams["axes.titleweight"] = "normal"
+
 
 # Set folder
-BASE_FOLDER = '/home/asyeda/stringerlab_dm11/eye-vs-face/'
-
+BASE_FOLDER = 'set_your_base_folder_here/' 
 mname = 'TX143'
 pupil_xlim = [66500, 69700]  # x-axis limits for the plot
 dbs = get_light_static_info()
 datexp = [entry['datexp'] for entry in dbs if entry['mname'] == mname][0]
-_, _, _, _, _, _, _, npz_data = load_data(f"{BASE_FOLDER}data/", mname, datexp)
+npz_data = None
 
-def plot():
+def set_path(data_path):
+    global BASE_FOLDER, npz_data
+    BASE_FOLDER = data_path
+    mname = 'TX143'
+    _, _, _, _, _, _, _, npz_data = load_data(f"{BASE_FOLDER}data/mouse_data/{mname}/{datexp}/", mname, datexp)
+
+
+def plot(data_path):
+    
+    set_path(data_path)
+
     fig = plt.figure(figsize=(14, 7), dpi=300)
     gs = GridSpec(2, 3, figure=fig, hspace=.25, wspace=0.35, height_ratios=[.8,1.2])
 
@@ -138,7 +151,7 @@ def plot_saccade_traces(gs, polar=False):
             text.set_color(pupil_y_color)
 
     # Add saccade times 
-    saccade_times = np.load(f'{BASE_FOLDER}data/saccade_times.npy', allow_pickle=True).item()
+    saccade_times = np.load(f'{BASE_FOLDER}data/saccade_data/saccade_times.npy', allow_pickle=True).item()
     for saccade_time in saccade_times['light_static'][mname]['1']:
         #ax1.axvspan(saccade_time[0], saccade_time[1], color='green', alpha=0.75)
         ax1.axvline(saccade_time[0], color='green', linestyle='dashed', lw=0.7)
@@ -152,19 +165,19 @@ def plot_eye_axis(gs):
     ax = plt.subplot(gs)
     # Load pupil data
     datexp = [entry['datexp'] for entry in dbs if entry['mname'] == mname][0]
-    axis_info = np.load(f"{BASE_FOLDER}data/{mname}_{datexp}_eyekp.npy", allow_pickle=True).item()
+    axis_info = np.load(f"{BASE_FOLDER}data/mouse_data/{mname}/{datexp}/{mname}_{datexp}_eyekp.npy", allow_pickle=True).item()
     frame_idx = np.random.randint(pupil_xlim[0], pupil_xlim[1])
     print("frame idx:", frame_idx)
     
     # Load video 
-    video_path = f"{BASE_FOLDER}data/{mname}_{datexp}_{1}_small.mp4"
+    video_path = f"{BASE_FOLDER}data/mouse_data/{mname}/{datexp}/{mname}_{datexp}_{1}_small.mp4"
     frame = get_frame_by_index(video_path, frame_idx=frame_idx)
     
     # Load pupil data
     pupil_x = npz_data['pupil_x_small']
     pupil_y = npz_data['pupil_y_small']
 
-    proc_filepath = f"{BASE_FOLDER}data/{mname}_{datexp}_{1}_small_proc.npy"
+    proc_filepath = f"{BASE_FOLDER}data/mouse_data/{mname}/{datexp}/{mname}_{datexp}_{1}_small_proc.npy"
     proc_data = np.load(proc_filepath, allow_pickle=True).item()
     pupil_sigma = proc_data['rois'][1]['pupil_sigma']
     ellipse = proc_data['rois'][1]['ellipse']
@@ -254,7 +267,7 @@ def plot_saccade_workflow(gs):
 
 def plot_saccade_directions(gs):
     # Load data
-    data_dir = f'{BASE_FOLDER}data/saccade_data.npz'
+    data_dir = f'{BASE_FOLDER}data/saccade_data/saccade_data.npz'
     saccade_data = np.load(data_dir, allow_pickle=True)
     beta_x = saccade_data['beta_x']
     beta_y = saccade_data['beta_y']
@@ -296,7 +309,7 @@ def plot_saccade_directions(gs):
 
 def plot_saccade_duration_hist(gs):
     # Load data
-    data_dir = f'{BASE_FOLDER}data/saccade_data.npz'
+    data_dir = f'{BASE_FOLDER}data/saccade_data/saccade_data.npz'
     print("Loading from:", data_dir)
     saccade_info = np.load(data_dir, allow_pickle=True)
     freq = saccade_info['frequencies']
@@ -366,7 +379,7 @@ def plot_saccade_duration_hist(gs):
 
 def plot_amp_vs_vel(gs):
     # Load data
-    data_dir = f'{BASE_FOLDER}data/saccade_data.npz'
+    data_dir = f'{BASE_FOLDER}data/saccade_data/saccade_data.npz'
     saccade_data = np.load(data_dir, allow_pickle=True)
     saccade_amplitudes = saccade_data['saccade_amplitudes']
     peak_velocities = saccade_data['peak_velocities']
@@ -383,7 +396,7 @@ def plot_amp_vs_vel(gs):
 
 def plot_saccade_durations(gs):
     # Load data
-    data_dir = f'{BASE_FOLDER}data/saccade_data.npz'
+    data_dir = f'{BASE_FOLDER}data/saccade_data/saccade_data.npz'
     saccade_data = np.load(data_dir, allow_pickle=True)
     saccade_durations = saccade_data['saccade_durations']
 

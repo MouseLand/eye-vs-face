@@ -1,4 +1,3 @@
-from fig_utils import *
 import matplotlib.pyplot as plt 
 import os, sys
 import numpy as np
@@ -16,14 +15,21 @@ sys.path.insert(0, '/home/asyeda/Facemap/facemap')
 from facemap import pupil
 from tqdm import tqdm
 
+
 LABEL_FONTSIZE = 12
 plt.rcParams['font.family'] = 'Arial'
 plt.rcParams['font.size'] = LABEL_FONTSIZE
+plt.rcParams["savefig.dpi"] = 300
 plt.rcParams['axes.titlesize'] = LABEL_FONTSIZE
 plt.rcParams['axes.labelsize'] = LABEL_FONTSIZE
 plt.rcParams['xtick.labelsize'] = LABEL_FONTSIZE-2
 plt.rcParams['ytick.labelsize'] = LABEL_FONTSIZE-2
 plt.rcParams['legend.fontsize'] = LABEL_FONTSIZE-2
+plt.rcParams["savefig.dpi"] = 300
+plt.rcParams["axes.spines.top"] = False
+plt.rcParams["axes.spines.right"] = False
+plt.rcParams["axes.titlelocation"] = "left"
+plt.rcParams["axes.titleweight"] = "normal"
 
 pupil_area_label_color = 'olive'
 pupil_label_color = 'green'
@@ -35,16 +41,23 @@ pupil_x_color = 'darkgreen'
 pupil_y_color = 'lightgreen'
 
 # Set folder
-BASE_FOLDER = '/home/asyeda/stringerlab_dm11/eye-vs-face/'
+BASE_FOLDER = 'set_your_base_folder_here/' 
 
-def plot():
+def set_path(data_path):
+    global BASE_FOLDER
+    BASE_FOLDER = data_path
+
+def plot(data_path):
+    
+    set_path(data_path)
+
     fig = plt.figure(figsize=(14, 9), dpi=300)
     gs = GridSpec(3, 8, figure=fig, hspace=.1, wspace=.55, height_ratios=[1, 1, 1], width_ratios=[1, 1, 1, 1, 1, 1, .75, .75])
 
-    video_path = f"{BASE_FOLDER}data/TX139_2024_08_10_1_full.mp4"
-    small_video_path = f"{BASE_FOLDER}data/TX139_2024_08_10_1_small.mp4"
-    small_proc_filepath = f"{BASE_FOLDER}data/TX139_2024_08_10_1_small_proc.npy"
-    full_proc_filepath = f"{BASE_FOLDER}data/TX139_2024_08_10_1_full_proc.npy"
+    video_path = f"{BASE_FOLDER}data/mouse_data/TX139/2024_08_10/TX139_2024_08_10_1_full.mp4"
+    small_video_path = f"{BASE_FOLDER}data/mouse_data/TX139/2024_08_10/TX139_2024_08_10_1_small.mp4"
+    small_proc_filepath = f"{BASE_FOLDER}data/mouse_data/TX139/2024_08_10/TX139_2024_08_10_1_small_proc.npy"
+    full_proc_filepath = f"{BASE_FOLDER}data/mouse_data/TX139/2024_08_10/TX139_2024_08_10_1_full_proc.npy"
     plot_exp_illustration(plt.subplot(gs[0, 0]), f"{BASE_FOLDER}images/exp_illustration.png")
     plot_recording_regions(plt.subplot(gs[0, 1]))
     plot_mouse_face(plt.subplot(gs[0, 2]), video_path, frame_idx=25366, crop_x=[155, 370], crop_y=[40, 220], proc_filepath=full_proc_filepath)
@@ -193,15 +206,7 @@ def plot_mouse_eye(ax, video_path, frame_idx, proc_filepath):
     mu, sig, _, _, xy, immiss = pupil.fit_gaussian(
         fr.copy(), pupil_sigma, do_xy=True
     )
-    """
-    area = np.pi * (sig[0] * sig[1]) ** 0.5
-    xy = xy[xy[:, 0] >= 0, :]
-    xy = xy[xy[:, 0] < yrange.size, :]
-    xy = xy[xy[:, 1] >= 0, :]
-    xy = xy[xy[:, 1] < xrange.size, :]
-    xy = np.concatenate((mu[np.newaxis, :], xy), axis=0)
-    xy += 0.5
-    """
+
     u, sv = proc_data['pupil'][0]['axdir'][frame_idx], proc_data['pupil'][0]['axlen'][frame_idx]
     n = 100  # Number of points around ellipse
     p = np.linspace(0, 2 * np.pi, n)[:, np.newaxis]
@@ -223,7 +228,6 @@ def plot_mouse_eye(ax, video_path, frame_idx, proc_filepath):
     pos = ax.get_position().bounds
     ax.set_position([pos[0]+0.02, pos[1]-.02, pos[2]*1.3, pos[3]*1.3])
 
-    ## TODO: Add reflector to correct ellipse computation
 
 def plot_network(ax, filepath):
     # Load the image
@@ -235,7 +239,6 @@ def plot_network(ax, filepath):
     ax.imshow(img_rgb)
     ax.axis('off')
     ax.text(0, 1.02, "Behavior to neural activity model", transform=ax.transAxes, ha="left")
-            # medium fontsize 
 
     pos = ax.get_position().bounds
     ax.set_position([pos[0]-0.07, pos[1]-.01, pos[2]*1.6, pos[3]*1])
@@ -253,17 +256,17 @@ def plot_exp_illustration(ax, filepath):
     ax.set_position([pos[0]-0.01, pos[1]-.02, pos[2]*1.5, pos[3]*1.5])
 
 def plot_recording_regions(ax):
-    root = "/home/asyeda/pachitariulab_dm11/data/PROC/TX140/2024_11_06/1/" #LZ14/2024_06_20/1/"
-    suite2p_ops = "/home/asyeda/pachitariulab_dm11/data/PROC/TX140/2024_11_06/1/suite2p/plane0/ops.npy"
-    data = np.load(suite2p_ops, allow_pickle=True).item()
 
-    if os.path.exists(f'{BASE_FOLDER}data/recording_regions_canvas.npy'):
+    if os.path.exists(f'{BASE_FOLDER}data/figure_data/recording_regions_canvas.npy'):
         # Load the precomputed canvas
-        canvas_data = np.load(f'{BASE_FOLDER}data/recording_regions_canvas.npy', allow_pickle=True).item()
+        canvas_data = np.load(f'{BASE_FOLDER}data/figure_data/recording_regions_canvas.npy', allow_pickle=True).item()
         canvas = canvas_data['canvas']
         max_width = canvas_data['max_width']
         max_height = canvas_data['max_height']
     else:
+        root = "/home/asyeda/pachitariulab_dm11/data/PROC/TX140/2024_11_06/1/" #LZ14/2024_06_20/1/"
+        suite2p_ops = "/home/asyeda/pachitariulab_dm11/data/PROC/TX140/2024_11_06/1/suite2p/plane0/ops.npy"
+        data = np.load(suite2p_ops, allow_pickle=True).item()
         # First pass to get all max_proj images and determine canvas size
         max_projs = []
         max_width = 0
@@ -300,7 +303,7 @@ def plot_recording_regions(ax):
             canvas[dy:dy+h, dx:dx+w] = max_proj
 
         # save canvas to file so you don't have to recompute
-        np.save(f'{BASE_FOLDER}data/recording_regions_canvas.npy', {'canvas': canvas, 'max_width': max_width, 'max_height': max_height})
+        np.save(f'{BASE_FOLDER}data/figure_data/recording_regions_canvas.npy', {'canvas': canvas, 'max_width': max_width, 'max_height': max_height})
         
     # Display the result
     rotated_canvas = np.rot90(canvas, k=1)  # rotate 90° counterclockwise
@@ -338,9 +341,9 @@ def plot_recording_regions(ax):
 def scatter_plot(fig, gs, recording_type):
     
     if recording_type == 'static':
-        data = np.load(f"{BASE_FOLDER}data/nonlinear_lightstatic_results_udcnv.npy", allow_pickle=True).item()
+        data = np.load(f"{BASE_FOLDER}data/figure_data/nonlinear_lightstatic_results_udcnv.npy", allow_pickle=True).item()
     else:
-        data = np.load(f"{BASE_FOLDER}data/nonlinear_lightrandom_results_udcnv.npy", allow_pickle=True).item()
+        data = np.load(f"{BASE_FOLDER}data/figure_data/nonlinear_lightrandom_results_udcnv.npy", allow_pickle=True).item()
     
     ax = plt.subplot(gs)
     pos = ax.get_position().bounds
@@ -413,9 +416,9 @@ def scatter_plot(fig, gs, recording_type):
 
 def line_plot(fig, gs, recording_type):
     if recording_type == 'static':
-        nonlinear_results = np.load(f"{BASE_FOLDER}data/nonlinear_lightstatic_results_udcnv.npy", allow_pickle=True).item()
+        nonlinear_results = np.load(f"{BASE_FOLDER}data/figure_data/nonlinear_lightstatic_results_udcnv.npy", allow_pickle=True).item()
     else:
-        nonlinear_results = np.load(f"{BASE_FOLDER}data/nonlinear_lightrandom_results_udcnv.npy", allow_pickle=True).item()
+        nonlinear_results = np.load(f"{BASE_FOLDER}data/figure_data/nonlinear_lightrandom_results_udcnv.npy", allow_pickle=True).item()
     
     # remove TX150 from nonlinear_results
     nonlinear_results = {k: v for k, v in nonlinear_results.items() if "TX150" not in k}
