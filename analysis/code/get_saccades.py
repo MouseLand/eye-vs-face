@@ -256,6 +256,6 @@ saccade_data = {
     'saccade_amplitudes': saccade_amplitudes,
 }
 # Save saccade data
-np.savez(f'{BASE_FOLDER}/data/saccade_data/saccade_data.npz', **saccade_data)
-np.save(f'{BASE_FOLDER}/data/saccade_data/saccade_times.npy', saccade_times)
-np.save(f'{BASE_FOLDER}/data/saccade_data/blink_times.npy', blink_times)
+np.savez(f'{BASE_FOLDER}/data/figure_data/saccade_data/saccade_data.npz', **saccade_data)
+np.save(f'{BASE_FOLDER}/data/figure_data/saccade_data/saccade_times.npy', saccade_times)
+np.save(f'{BASE_FOLDER}/data/figure_data/saccade_data/blink_times.npy', blink_times)

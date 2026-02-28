@@ -333,6 +333,6 @@ plt.tight_layout()
 plt.show()
 
 # Save data for plotting
-np.savez(f'{BASE_FOLDER}/data/saccade_data/psth_running.npz', mean_psth_running_speed_all=mean_psth_running_speed_all, mean_psth_running_speed_random_all=mean_psth_running_speed_random_all,
+np.savez(f'{BASE_FOLDER}/data/figure_data/saccade_data/psth_running.npz', mean_psth_running_speed_all=mean_psth_running_speed_all, mean_psth_running_speed_random_all=mean_psth_running_speed_random_all,
          sem_psth_running_speed_all=sem_psth_running_speed_all, sem_psth_running_speed_random_all=sem_psth_running_speed_random_all,
          padding=padding, sampling_rate=TARGET_SR, random_avg_running=random_avg_running, pre_avg_running=pre_avg_running, post_avg_running=post_avg_running)

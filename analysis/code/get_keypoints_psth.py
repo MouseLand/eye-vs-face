@@ -483,7 +483,7 @@ plt.tight_layout()
 plt.show()
 
 # Save data for plotting 
-np.savez_compressed(f'{BASE_FOLDER}/data/saccade_data/psth_whisker_nose_eye.npz', 
+np.savez_compressed(f'{BASE_FOLDER}/data/figure_data/saccade_data/psth_whisker_nose_eye.npz', 
                      mean_psth_whisker_all=mean_psth_whisker_all, 
                      mean_psth_nose_all=mean_psth_nose_all, 
                      mean_psth_eye_all=mean_psth_eye_all,
@@ -511,4 +511,4 @@ np.savez_compressed(f'{BASE_FOLDER}/data/saccade_data/psth_whisker_nose_eye.npz'
                      random_avg_pupilarea=random_avg_pupilarea,
                      sampling_rate=TARGET_SR,  # Now using the target sampling rate
                      padding=padding)
-print("File saved in ", f'{BASE_FOLDER}/data/saccade_data/')
+print("File saved in ", f'{BASE_FOLDER}/data/figure_data/saccade_data/')
