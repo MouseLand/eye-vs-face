@@ -11,7 +11,7 @@ from glob import glob
 import seaborn as sns
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import sys
-sys.path.insert(0, '/home/asyeda/Facemap/facemap')
+from rastermap import Rastermap, utils
 from facemap import pupil
 from tqdm import tqdm
 
@@ -54,12 +54,12 @@ def plot(data_path):
     fig = plt.figure(figsize=(14, 9), dpi=300)
     gs = GridSpec(3, 8, figure=fig, hspace=.1, wspace=.55, height_ratios=[1, 1, 1], width_ratios=[1, 1, 1, 1, 1, 1, .75, .75])
 
-    video_path = f"{BASE_FOLDER}data/mouse_data/TX139/2024_08_10/TX139_2024_08_10_1_full.mp4"
-    small_video_path = f"{BASE_FOLDER}data/mouse_data/TX139/2024_08_10/TX139_2024_08_10_1_small.mp4"
-    small_proc_filepath = f"{BASE_FOLDER}data/mouse_data/TX139/2024_08_10/TX139_2024_08_10_1_small_proc.npy"
-    full_proc_filepath = f"{BASE_FOLDER}data/mouse_data/TX139/2024_08_10/TX139_2024_08_10_1_full_proc.npy"
+    video_path = f"{BASE_FOLDER}data/cam_data/TX139/2024_08_10/TX139_2024_08_10_1_full.mp4"
+    small_video_path = f"{BASE_FOLDER}data/cam_data/TX139/2024_08_10/TX139_2024_08_10_1_small.mp4"
+    small_proc_filepath = f"{BASE_FOLDER}data/cam_proc/TX139/2024_08_10/TX139_2024_08_10_1_small_proc.npy"
+    full_proc_filepath = f"{BASE_FOLDER}data/cam_proc/TX139/2024_08_10/TX139_2024_08_10_1_full_proc.npy"
     plot_exp_illustration(plt.subplot(gs[0, 0]), f"{BASE_FOLDER}images/exp_illustration.png")
-    plot_recording_regions(plt.subplot(gs[0, 1]))
+    #plot_recording_regions(plt.subplot(gs[0, 1])) # skip for now b/c requires raw data
     plot_mouse_face(plt.subplot(gs[0, 2]), video_path, frame_idx=25366, crop_x=[155, 370], crop_y=[40, 220], proc_filepath=full_proc_filepath)
     plot_mouse_eye(plt.subplot(gs[0, 3]), small_video_path, frame_idx=25366, proc_filepath=small_proc_filepath)
     plot_network(plt.subplot(gs[0, 4:]), filepath=f'{BASE_FOLDER}images/network_fig1.png')
@@ -638,7 +638,7 @@ def raster_plot_light_predictions(fig, gs, recording_type):
     nested_gs = GridSpecFromSubplotSpec(5, 1, height_ratios=[.35, .35, .1, .15, .1], subplot_spec=gs, hspace=0.03)
 
     # Get stim ID data
-    stim_id_path = f"{BASE_FOLDER}data/stim_ID_lightstaticrandom_recordings/"
+    stim_id_path = f"{BASE_FOLDER}data/figure_data/stim_ID_lightstaticrandom_recordings/"
     stim_id_file = glob(f"{stim_id_path}/*{recording_type}*.mat")[0]
     stimID = loadmat(stim_id_file)['TL']['stim'][0,0]['istim'][0,0].squeeze().flatten()
 
@@ -653,14 +653,104 @@ def raster_plot_light_predictions(fig, gs, recording_type):
     # Load neural and pupil data
     xlim_neural = [2600, 3000] # 50 
 
-    data = np.load(f"{BASE_FOLDER}data/rasterdata/{mname}_{datexp}_fig1rasterdata.npz", allow_pickle=True)
-    y_test_embedding = data['y_test_embedding']
-    y_pred_pupil_embedding = data['y_pred_pupil_embedding']
-    itest_sorting = data['itest_sorting']
-    x_test_pupil = data['x_test_pupil']
-    x_test_motsvd = data['x_test_motsvd']
-    tstart = data['tstart'].item()
-    tend = data['tend'].item()
+    if not os.path.exists(f"{BASE_FOLDER}data/rasterdata/{mname}_{datexp}_fig1rasterdata.npz"):
+        n_folds = 5
+        rastermap_out = np.load(f"{BASE_FOLDER}data/figure_data/light{recording_type}_rastermap_out_udcnv.npy".format(recording_type), allow_pickle=True).item()
+        # Get isort if saved 
+        if os.path.exists(f"{BASE_FOLDER}data/figure_data/rasterdata/{mname}_{datexp}_rasterdata_udcnv.npz"):     # check if isort saved
+            data = np.load(f"{BASE_FOLDER}data/figure_data/rasterdata/{mname}_{datexp}_rasterdata_udcnv.npz", allow_pickle=True)
+            isort = data['isort']
+        else: # Run rastermap 
+            sys.path.append(f'{BASE_FOLDER}analysis/code/')
+            import nonlinear_modelv3
+            # Load spks using the new deconvolution method (udcnv)
+            spks, _, _, _, _, _, _, npz_data = nonlinear_modelv3.load_data(f'{BASE_FOLDER}data/npz_data/', mname, datexp) 
+            model = Rastermap().fit(zscore(spks, axis=1).copy())
+            isort = model.isort
+            np.savez(f"{BASE_FOLDER}data/figure_data/rasterdata/{mname}_{datexp}_rasterdata_udcnv.npz", isort=isort)
+
+        # Plot rastermap of before and after predictionss
+        y_test_all, y_pred_face_all, y_pred_pupil_all = [], [], []
+        condition = 'before'
+        tstart = rastermap_out[mname]['pupil']['tneural_start']
+        tend = rastermap_out[mname]['pupil']['tneural_end']
+
+        # Get raw data
+        y_test_all = np.empty((rastermap_out[mname]['pupil']['U'].shape[0], 0))
+        for k_idx in range(n_folds):
+            for segment in rastermap_out[mname]['pupil'][condition]['y_test'][k_idx]:
+                if segment.shape[0] > 0:
+                    y_test = (segment @ rastermap_out[mname]['pupil']['U'].T)
+                    y_test_all = np.hstack((y_test_all, y_test.T))
+
+        # Get neural data from all k-folds and concatenate them: Pupil
+        y_pred_pupil_all = np.empty((rastermap_out[mname]['pupil']['U'].shape[0], 0))
+        for k_idx in range(n_folds):
+            for segment in rastermap_out[mname]['pupil']['before']['y_pred'][k_idx]:
+                if segment.shape[0] > 0:
+                    y_test = (segment @ rastermap_out[mname]['pupil']['U'].T)
+                    y_pred_pupil_all = np.hstack((y_pred_pupil_all, y_test.T))
+
+        # Get prediction from face w/o eye
+        y_pred_face_all = np.empty((rastermap_out[mname]['face_eye']['U'].shape[0], 0))
+        for k_idx in range(n_folds):
+            for segment in rastermap_out[mname]['face_eye'][condition]['y_pred'][k_idx]:
+                if segment.shape[0] > 0:
+                    y_test = (segment @ rastermap_out[mname]['face_eye']['U'].T)
+                    y_pred_face_all = np.hstack((y_pred_face_all, y_test.T))
+
+        # Get test indices from each k_fold and combine them into a single list
+        data_splits_itest = rastermap_out[mname]['pupil']['data_splits_ineural_test']
+        itest_blocks = []
+        for fold in data_splits_itest:        # loop over k folds
+            for seg in fold[0]:       # loop over segments in each fold
+                for element in seg:
+                    itest_blocks.append(element)   
+        itest_sorting = np.argsort(itest_blocks)
+
+        x_test = []
+        for k_idx in range(n_folds):
+            x_test_pupil = rastermap_out[mname]['pupil'][condition]['x_test'][k_idx]
+            itest_sample_b = rastermap_out[mname]['pupil'][condition]['itest_sample_b'][k_idx]
+            for s_idx, segment in enumerate(x_test_pupil):
+                val = segment[itest_sample_b[s_idx]]
+                x_test.append(val)
+        x_test_pupil = np.concatenate(x_test, axis=0)
+
+        x_test = []
+        for k_idx in range(n_folds):
+            x_test_motsvd = rastermap_out[mname]['face_eye'][condition]['x_test'][k_idx]
+            itest_sample_b = rastermap_out[mname]['face_eye'][condition]['itest_sample_b'][k_idx]
+            for s_idx, segment in enumerate(x_test_motsvd):
+                val = segment[itest_sample_b[s_idx]]
+                x_test.append(val)
+        x_test_motsvd = np.concatenate(x_test, axis=0)
+
+        # z-score the predicted data using mean and std of test data
+        y_test_mean = np.nanmean(y_test_all, axis=1, keepdims=True)
+        y_test_std = np.nanstd(y_test_all, axis=1, keepdims=True)
+        y_test_all = (y_test_all - y_test_mean) / y_test_std
+        y_pred_face_all = (y_pred_face_all - y_test_mean) / y_test_std
+        y_pred_pupil_all = (y_pred_pupil_all - y_test_mean) / y_test_std
+        
+        # Sort the data based on the model's sorting and bin it
+        y_test_embedding = utils.bin1d(y_test_all[isort], bin_size=200, axis=0)
+        y_pred_face_embedding = utils.bin1d(y_pred_face_all[isort], bin_size=200, axis=0)
+        y_pred_pupil_embedding = utils.bin1d(y_pred_pupil_all[isort], bin_size=200, axis=0)
+
+        np.savez(f"{BASE_FOLDER}data/figure_data/rasterdata/{mname}_{datexp}_fig1rasterdata.npz", y_test_embedding=y_test_embedding, 
+                y_pred_pupil_embedding=y_pred_pupil_embedding, y_pred_face_embedding=y_pred_face_embedding,
+                itest_sorting=itest_sorting, x_test_pupil=x_test_pupil, x_test_motsvd=x_test_motsvd,
+                tstart=tstart, tend=tend)
+    else:
+        data = np.load(f"{BASE_FOLDER}data/figure_data/rasterdata/{mname}_{datexp}_fig1rasterdata.npz", allow_pickle=True)
+        y_test_embedding = data['y_test_embedding']
+        y_pred_pupil_embedding = data['y_pred_pupil_embedding']
+        itest_sorting = data['itest_sorting']
+        x_test_pupil = data['x_test_pupil']
+        x_test_motsvd = data['x_test_motsvd']
+        tstart = data['tstart'].item()
+        tend = data['tend'].item()
 
     stimID = stimID[tstart:tend]
     
@@ -797,9 +887,9 @@ def plot_train_test_tuning_scatter(gs):
 
     category = ['light_random', 'light_static']
     # Load train/test data if already computed
-    if os.path.exists(f'{BASE_FOLDER}data/tuning_curve_data/'):
-        category_test_data = np.load(f'{BASE_FOLDER}data/tuning_curve_data/tuning_test_data.npy', allow_pickle=True).item()
-        category_train_data = np.load(f'{BASE_FOLDER}data/tuning_curve_data/tuning_train_data.npy', allow_pickle=True).item()
+    if os.path.exists(f'{BASE_FOLDER}data/figure_data/'):
+        category_test_data = np.load(f'{BASE_FOLDER}data/figure_data/tuning_test_data.npy', allow_pickle=True).item()
+        category_train_data = np.load(f'{BASE_FOLDER}data/figure_data/tuning_train_data.npy', allow_pickle=True).item()
     else:
         print("File not found. Please run the tuning curve computation script first.")
     mname = 'TX140'
@@ -850,8 +940,8 @@ def plot_correlation_hist(gs):
     from scipy.stats import ttest_ind
 
     # Load correlation data if already computed
-    if os.path.exists(f'{BASE_FOLDER}data/tuning_curve_data/correlation_tuning_light_random_static.npy'):
-        corr_category = np.load(f'{BASE_FOLDER}data/tuning_curve_data/correlation_tuning_light_random_static.npy', allow_pickle=True).item()
+    if os.path.exists(f'{BASE_FOLDER}data/figure_data/correlation_tuning_light_random_static.npy'):
+        corr_category = np.load(f'{BASE_FOLDER}data/figure_data/correlation_tuning_light_random_static.npy', allow_pickle=True).item()
     else:
         print("File not found. Please run the tuning curve computation script first.")
 
@@ -941,9 +1031,9 @@ def plot_tuning_curve(gs):
     category = ['light_random', 'light_static']
 
     # Load tuning data
-    if os.path.exists(f'{BASE_FOLDER}data/tuning_curve_data/tuning_curve.npy'):
-        category_curve = np.load(f'{BASE_FOLDER}data/tuning_curve_data/tuning_curve.npy', allow_pickle=True).item()
-        relative_pupil_position = np.load(f'{BASE_FOLDER}data/tuning_curve_data/relative_pupil_position.npy')
+    if os.path.exists(f'{BASE_FOLDER}data/figure_data/tuning_curve.npy'):
+        category_curve = np.load(f'{BASE_FOLDER}data/figure_data/tuning_curve.npy', allow_pickle=True).item()
+        relative_pupil_position = np.load(f'{BASE_FOLDER}data/figure_data/relative_pupil_position.npy')
     else:
         print("File not found. Please run the tuning curve computation script first.")
     # Plot tuning curves

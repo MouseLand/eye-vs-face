@@ -8,7 +8,6 @@ from scipy.stats import f_oneway, ttest_rel
 from statsmodels.stats.multitest import multipletests
 from matplotlib.lines import Line2D
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-sys.path.insert(0, '/home/asyeda/Facemap/facemap')
 from facemap import pupil
 from facemap.pose import refine_pose
 from itertools import combinations
@@ -53,7 +52,7 @@ def plot(data_path):
     fig = plt.figure(figsize=(14, 7), dpi=300)
     gs = GridSpec(4, 6, figure=fig)
 
-    plot_mouse_face_keypoints(gs[0, 0])
+    # plot_mouse_face_keypoints(gs[0, 0]) # skip for now b/c requires raw data
     plot_behavior_traces(gs[1, 0])
     plot_psth(gs[:2, 1:5])
     plot_saccade_frequency_during_whisking_sniffing(gs[:2, 5])
@@ -275,8 +274,8 @@ def remove_spines(ax):
 
 def plot_saccade_frequency_during_whisking_sniffing(gs):
 
-    if os.path.exists(f'{BASE_FOLDER}data/saccade_data/saccade_orofacial_freq.npy'):
-        freq_data = np.load(f'{BASE_FOLDER}data/saccade_data/saccade_orofacial_freq.npy', allow_pickle=True).item()
+    if os.path.exists(f'{BASE_FOLDER}data/figure_data/saccade_data/saccade_orofacial_freq.npy'):
+        freq_data = np.load(f'{BASE_FOLDER}data/figure_data/saccade_data/saccade_orofacial_freq.npy', allow_pickle=True).item()
         whisking_saccade_freq = freq_data['whisking_saccade_freq']
         sniffing_saccade_freq = freq_data['sniffing_saccade_freq']
         saccade_freq = freq_data['saccade_freq']
@@ -291,7 +290,7 @@ def plot_saccade_frequency_during_whisking_sniffing(gs):
             f'{BASE_FOLDER}light_recordings_static']
         dbs = [dark_dbs, light_random_dbs, light_static_dbs]
         category = ['dark', 'light_random', 'light_static']
-        saccade_data = np.load(f'{BASE_FOLDER}data/saccade_data/saccade_times.npy', allow_pickle=True).item()
+        saccade_data = np.load(f'{BASE_FOLDER}data/figure_data/saccade_data/saccade_times.npy', allow_pickle=True).item()
 
         BODYPARTS = [
             "eye(back)",
@@ -491,7 +490,7 @@ def plot_keypoints_net(gs, filepath):
 def plot_correlation_matrix(gs):
 
     # Load data
-    data_dir = f'{BASE_FOLDER}data/saccade_data/bodypart_group_results_zscore.npz'
+    data_dir = f'{BASE_FOLDER}data/figure_data/saccade_data/bodypart_group_results_zscore.npz'
     results = np.load(data_dir, allow_pickle=True)
     results_df = pd.DataFrame({key: results[key] for key in results.keys()})
 
@@ -506,7 +505,7 @@ def plot_correlation_matrix(gs):
 def plot_correlation_matrix(gs):
 
     # Load data
-    data_dir = f'{BASE_FOLDER}data/saccade_data/bodypart_group_results_zscore.npz'
+    data_dir = f'{BASE_FOLDER}data/figure_data/saccade_data/bodypart_group_results_zscore.npz'
     results = np.load(data_dir, allow_pickle=True)
     results_df = pd.DataFrame({key: results[key] for key in results.keys()})
 
@@ -588,7 +587,7 @@ def plot_correlation_matrix(gs):
 
 def plot_saccade_durations(gs):
     # Load data
-    data_dir = f'{BASE_FOLDER}data/saccade_data/saccade_durations.npz'
+    data_dir = f'{BASE_FOLDER}data/figure_data/saccade_data/saccade_durations.npz'
     saccade_data = np.load(data_dir, allow_pickle=True)
     saccade_durations = saccade_data['saccade_durations']
 
@@ -603,7 +602,7 @@ def plot_saccade_durations(gs):
 
 def plot_psth(gs):
     # Load data
-    keypoints_psth_path = f'{BASE_FOLDER}data/saccade_data/psth_whisker_nose_eye.npz'
+    keypoints_psth_path = f'{BASE_FOLDER}data/figure_data/saccade_data/psth_whisker_nose_eye.npz'
     keypoints_psth_data = np.load(keypoints_psth_path, allow_pickle=True)
     mean_psth_whisker_all=keypoints_psth_data['mean_psth_whisker_all']
     mean_psth_nose_all=keypoints_psth_data['mean_psth_nose_all']
@@ -777,7 +776,7 @@ def plot_psth(gs):
             y_base = y_pos  # update base for next bar
 
     # Load running psth data
-    running_psth_path = f'{BASE_FOLDER}data/saccade_data/psth_running.npz'
+    running_psth_path = f'{BASE_FOLDER}data/figure_data/saccade_data/psth_running.npz'
     running_psth_data = np.load(running_psth_path, allow_pickle=True)
     random_avg_running = running_psth_data['random_avg_running']/10
     pre_avg_running = running_psth_data['pre_avg_running']/10
@@ -1023,7 +1022,7 @@ def get_centroid_pc():
     dbs = [dark_dbs, light_random_dbs, light_static_dbs]
     category = ['dark', 'light_random', 'light_static']
 
-    data_dir = f'{BASE_FOLDER}data/saccade_data/saccade_times.npy'
+    data_dir = f'{BASE_FOLDER}data/figure_data/saccade_data/saccade_times.npy'
     saccade_data = np.load(data_dir, allow_pickle=True).item()
 
     BODYPARTS = [
@@ -1120,7 +1119,7 @@ def get_saccade_keypoints_relation():
     category = ['dark', 'light_random', 'light_static']
 
 
-    data_dir = f'{BASE_FOLDER}data/saccade_data/saccade_times.npy'
+    data_dir = f'{BASE_FOLDER}data/figure_data/saccade_data/saccade_times.npy'
     saccade_data = np.load(data_dir, allow_pickle=True).item()
 
     BODYPARTS = [
@@ -1476,7 +1475,7 @@ def check_mouse_saccade_direction_relations():
 
 def plot_prediction_traces(gs):
     # Load trace data to plot in fig.3 
-    data = np.load(f"{BASE_FOLDER}data/saccade_data/pred_traces_zscore.npy", allow_pickle=True).item()
+    data = np.load(f"{BASE_FOLDER}data/figure_data/saccade_data/pred_traces_zscore.npy", allow_pickle=True).item()
     whisker_color = "#c92814ff"
     nose_color = "#6bfbbaff"
     pupil_x_color = 'darkgreen'

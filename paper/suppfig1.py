@@ -10,7 +10,6 @@ from statsmodels.stats.multitest import multipletests
 from matplotlib.lines import Line2D
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import sys
-sys.path.insert(0, '/home/asyeda/Facemap/facemap')
 from facemap import pupil
 from itertools import combinations
 import pandas as pd
@@ -55,7 +54,7 @@ def plot(data_path):
     gs = GridSpec(2, 3, figure=fig, hspace=.25, wspace=0.35, height_ratios=[.8,1.2])
 
     plot_saccade_traces(gs[0, 0])
-    plot_eye_axis(gs[0, 1])
+    # plot_eye_axis(gs[0, 1]) # skip for now b/c requires raw data
     plot_saccade_traces(gs[0, 2], polar=True)
     plot_saccade_duration_hist(gs[1,0])
     plot_amp_vs_vel(gs[1,1])
@@ -151,7 +150,7 @@ def plot_saccade_traces(gs, polar=False):
             text.set_color(pupil_y_color)
 
     # Add saccade times 
-    saccade_times = np.load(f'{BASE_FOLDER}data/saccade_data/saccade_times.npy', allow_pickle=True).item()
+    saccade_times = np.load(f'{BASE_FOLDER}data/figure_data/saccade_data/saccade_times.npy', allow_pickle=True).item()
     for saccade_time in saccade_times['light_static'][mname]['1']:
         #ax1.axvspan(saccade_time[0], saccade_time[1], color='green', alpha=0.75)
         ax1.axvline(saccade_time[0], color='green', linestyle='dashed', lw=0.7)
@@ -267,7 +266,7 @@ def plot_saccade_workflow(gs):
 
 def plot_saccade_directions(gs):
     # Load data
-    data_dir = f'{BASE_FOLDER}data/saccade_data/saccade_data.npz'
+    data_dir = f'{BASE_FOLDER}data/figure_data/saccade_data/saccade_data.npz'
     saccade_data = np.load(data_dir, allow_pickle=True)
     beta_x = saccade_data['beta_x']
     beta_y = saccade_data['beta_y']
@@ -309,7 +308,7 @@ def plot_saccade_directions(gs):
 
 def plot_saccade_duration_hist(gs):
     # Load data
-    data_dir = f'{BASE_FOLDER}data/saccade_data/saccade_data.npz'
+    data_dir = f'{BASE_FOLDER}data/figure_data/saccade_data/saccade_data.npz'
     print("Loading from:", data_dir)
     saccade_info = np.load(data_dir, allow_pickle=True)
     freq = saccade_info['frequencies']
@@ -379,7 +378,7 @@ def plot_saccade_duration_hist(gs):
 
 def plot_amp_vs_vel(gs):
     # Load data
-    data_dir = f'{BASE_FOLDER}data/saccade_data/saccade_data.npz'
+    data_dir = f'{BASE_FOLDER}data/figure_data/saccade_data/saccade_data.npz'
     saccade_data = np.load(data_dir, allow_pickle=True)
     saccade_amplitudes = saccade_data['saccade_amplitudes']
     peak_velocities = saccade_data['peak_velocities']
@@ -396,7 +395,7 @@ def plot_amp_vs_vel(gs):
 
 def plot_saccade_durations(gs):
     # Load data
-    data_dir = f'{BASE_FOLDER}data/saccade_data/saccade_data.npz'
+    data_dir = f'{BASE_FOLDER}data/figure_data/saccade_data/saccade_durations.npz'
     saccade_data = np.load(data_dir, allow_pickle=True)
     saccade_durations = saccade_data['saccade_durations']
 

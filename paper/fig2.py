@@ -61,12 +61,12 @@ def plot(data_path):
     plt.show()
 
 def plot_illustration(gs, fp):
-    before_carbachol_video = f"{BASE_FOLDER}data/mouse_data/LZ14/2024_06_20/LZ14_2024_06_20_1_full.mp4"
-    after_carbachol_video = f"{BASE_FOLDER}data/mouse_data/LZ14/2024_06_20/LZ14_2024_06_20_2_full.mp4"
-    before_eye_video = f"{BASE_FOLDER}data/mouse_data/LZ14/2024_06_20/LZ14_2024_06_20_1_small.mp4"
-    after_eye_video = f"{BASE_FOLDER}data/mouse_data/LZ14/2024_06_20/LZ14_2024_06_20_2_small.mp4"
-    after_small_proc = f"{BASE_FOLDER}data/mouse_data/LZ14/2024_06_20/LZ14_2024_06_20_2_small_proc.npy"
-    before_idx, after_idx = 26749, 14000 #68414
+    before_carbachol_video = f"{BASE_FOLDER}data/cam_data/LZ14_2024_06_20_1_full.mp4"
+    after_carbachol_video = f"{BASE_FOLDER}data/cam_data/LZ14_2024_06_20_2_full.mp4"
+    before_eye_video = f"{BASE_FOLDER}data/cam_data/LZ14_2024_06_20_1_small.mp4"
+    after_eye_video = f"{BASE_FOLDER}data/cam_data/LZ14_2024_06_20_2_small.mp4"
+    after_small_proc = f"{BASE_FOLDER}data/cam_proc/LZ14_2024_06_20_2_small_proc.npy"
+    before_idx, after_idx = 26749, 14000 
     alpha = 3 # Contrast multiplier
     beta = 1    # Brightness offset (can be removed or adjusted)
 
@@ -740,12 +740,12 @@ def raster_plot_predictions(fig, gs, recording_type="dark"):
 
     # Run rastermap 
     # check if isort saved
-    if os.path.exists(f"{BASE_FOLDER}data/mouse_data/{mname}/{datexp}/{mname}_{datexp}_rastermap_isort.npy"):
-        isort = np.load(f"{BASE_FOLDER}data/mouse_data/{mname}/{datexp}/{mname}_{datexp}_rastermap_isort.npy")
+    if os.path.exists(f"{BASE_FOLDER}data/figure_data/{mname}_{datexp}_rastermap_isort.npy"):
+        isort = np.load(f"{BASE_FOLDER}data/figure_data/{mname}_{datexp}_rastermap_isort.npy")
     else:
         model = Rastermap().fit(zscore(spks, axis=1).copy())
         isort = model.isort
-        np.save(f"{BASE_FOLDER}data/mouse_data/{mname}/{datexp}/{mname}_{datexp}_rastermap_isort.npy", isort)
+        np.save(f"{BASE_FOLDER}data/figure_data/{mname}_{datexp}_rastermap_isort.npy", isort)
 
     # z-score the predicted data using mean and std of test data
     y_test_mean = np.nanmean(y_test_all, axis=1, keepdims=True)

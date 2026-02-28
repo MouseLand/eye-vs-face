@@ -64,7 +64,7 @@ def raster_plot_light_predictions(recording_type, mname):
     _, _, _, _, _, _, _, npz_data = load_data(f"{BASE_FOLDER}data/npz_data/", mname, datexp)
    
     # Get isort if saved 
-    data = np.load(f"{BASE_FOLDER}data/rasterdata/{mname}_{datexp}_rasterdata_udcnv.npz", allow_pickle=True)
+    data = np.load(f"{BASE_FOLDER}data/figure_data/rasterdata/{mname}_{datexp}_rasterdata_udcnv.npz", allow_pickle=True)
     isort = data['isort']
 
     # Load neural and pupil data
@@ -131,7 +131,7 @@ def raster_plot_light_predictions(recording_type, mname):
 
     print(x_test_pupil.shape, y_test_all.shape, y_pred_pupil_all.shape)
 
-    saccade_data = np.load(f'{BASE_FOLDER}data/saccade_data/saccade_times.npy', allow_pickle=True).item()
+    saccade_data = np.load(f'{BASE_FOLDER}data/figure_data/saccade_data/saccade_times.npy', allow_pickle=True).item()
     aligned_saccades = []
     # Get saccades
     for i, block in enumerate(saccade_data["light_{}".format(recording_type)][mname].keys()):
