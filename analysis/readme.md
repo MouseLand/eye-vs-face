@@ -2,7 +2,7 @@
 
 # Figure Generation Notebooks
 
-This repository contains Jupyter notebooks used to generate processed data, model outputs, and visualizations for the main and supplementary figures.
+This repository contains Jupyter notebooks used to generate processed data, model outputs, and visualizations for the main and supplementary figures. Estimated time for each notebook is listed in each section accounting for the time required to run the entire dataset.
 
 To reproduce the results, run the notebooks in the order listed below.
 
@@ -10,7 +10,7 @@ To reproduce the results, run the notebooks in the order listed below.
 
 ## Execution Order
 
-### 1. `generate_svds.ipynb`
+### 1. `generate_svds.ipynb` (optional) [~8-10 hours]
 
 **Generates:**
 
@@ -26,7 +26,7 @@ Computes PCA of behavioral videos using Facemap code within the notebook. Produc
 
 ---
 
-### 2. `geom_to_deg_saccade.ipynb` (optional)
+### 2. `geom_to_deg_saccade.ipynb` (optional)  [~1 hour]
 
 **Generates:**
 
@@ -42,7 +42,7 @@ Converts geometric pupil position coordinates (x, y) into degrees. These process
 
 ---
 
-### 3. `saccade_detection.ipynb`
+### 3. `saccade_detection.ipynb` (optional)  [~1 hour]
 
 **Purpose:**
 Initial saccade detection and label generation.
@@ -64,7 +64,7 @@ Uses the pretrained model (Andersson weights) to generate initial saccade predic
 
 ---
 
-### 4. `run_predictions.ipynb`
+### 4. `run_predictions.ipynb` [~4-5 hours]
 
 **Generates:**
 
@@ -80,7 +80,7 @@ Trains and/or runs the fine-tuned model using refined saccade labels. Evaluates 
 
 ---
 
-### 5. `tuning_curves.ipynb`
+### 5. `tuning_curves.ipynb` [< 20 mins]
 
 **Generates:**
 
@@ -96,7 +96,7 @@ Computes and visualizes tuning curves for static image and random image conditio
 
 ---
 
-### 6. `keypoints_prediction.ipynb`
+### 6. `keypoints_prediction.ipynb` [~1-2 hours]
 
 **Generates:**
 
@@ -112,7 +112,7 @@ Predicts keypoints and pupil position from another set of keypoints or pupil mea
 
 ---
 
-### 7. `saccade_video.ipynb`
+### 7. `saccade_video.ipynb` [< 20 mins]
 
 **Generates:**
 
@@ -139,7 +139,7 @@ The `code/` directory contains reusable Python modules that support data process
 
 ## Module Overview
 
-### Modules Used by Notebooks
+### Modules Used by Notebooks [< 30 mins]
 
 These files are imported automatically within the notebooks and do not need to be run directly:
 
@@ -187,7 +187,7 @@ Computes running-aligned peri-saccade time histograms (PSTHs) aligned to saccade
 
 **Output:**
 
-* Running-aligned PSTH data saved for downstream visualization
+* Running-aligned PSTH data saved for downstream plotting
 
 ---
 
