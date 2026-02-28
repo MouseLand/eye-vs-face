@@ -62,7 +62,48 @@ Next, run the notebooks in the recommended execution order to reproduce the pape
 
 ### `data/`
 
-Preprocessed and intermediate files required for analysis. Data downloaded from figshare will be placed here.
+Preprocessed and intermediate files required for analysis. Data downloaded from figshare will be placed here. Figshare download structure:
+
+* npz_data
+  * xpos: neuron x-position
+  * ypos: neuron y-position
+  * spks: neurons x time
+  * face_svd
+  * face_eye_svd
+  * pose_x_coord: keypoints x-coordinate
+  * pose_y_coord: keypoints y-coordinate
+  * pupil_x_small: pupil x-position
+  * pupil_y_small: pupil y-position
+  * pupil_area_small: pupil area
+  * blink_small: blink trace
+  * neural_frames_list
+  * cam_frames_list
+  * tcam: camera timestamps
+  * tneural: neural timestamps
+  * iplane
+  * stat
+  * running_speed
+  * running_time
+  * pupil_x_polar
+  * pupil_y_polar
+  * axis_info
+
+* cam_data
+
+  * Raw camera recordings from the behavioral setup. Also contains different cropped versions of the videos.
+
+* saccade_labels
+
+  * Detected saccade events using the uneye model.
+
+* cam_proc
+
+  * Processed behavior video output using Facemap software.
+ 
+* retinotopy
+
+  * Retinotopy results for the light condition recordings.
+
 
 ### `paper/`
 
