@@ -129,7 +129,7 @@ python filename.py
 
 ### `analysis/notebooks/`
 
-Main analysis and modeling notebooks:
+Please see analysis/readme.md for details on running notebook code. Main analysis and modeling notebooks:
 
 * `generate_svds.ipynb`
 * `geom_to_deg_saccade.ipynb`
