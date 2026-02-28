@@ -35,7 +35,7 @@ The analyses and models in this repository were run on the following system:
 * GPU: NVIDIA GeForce RTX 4090
 
 ---
-## Setup/Installation Instructions 
+## Setup/Installation Instructions (< 5 min)
 
 To reproduce the results, clone the repository:
 
@@ -109,11 +109,11 @@ Preprocessed and intermediate files required for analysis. Data downloaded from 
 
 Contains `figures.ipynb`, which generates all manuscript figures.
 
-### `analysis/code/`
+### `analysis/code/` (< 15 min)
 
 Reusable Python modules:
 
-* `get_keypoints_psth.py` — Keypoints aligned to saccades (Fig. 3)
+* `get_keypoints_psth.py` — Keypoints aligned to saccades (Fig. 3) 
 * `get_saccades.py` — Dataset-wide saccade compilation
 * `get_running_psth.py` — Running analyses (Fig. 3)
 * `nonlinear_modelv3.py` — Model definitions and training
@@ -127,9 +127,9 @@ All are imported by notebooks except:
 python filename.py
 ```
 
-### `analysis/notebooks/`
+### `analysis/notebooks/` 
 
-Please see analysis/readme.md for details on running notebook code. Main analysis and modeling notebooks:
+Please see analysis/readme.md for details on running notebook code and estimated time for each notebook. Main analysis and modeling notebooks:
 
 * `generate_svds.ipynb`
 * `geom_to_deg_saccade.ipynb`
