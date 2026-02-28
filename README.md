@@ -109,6 +109,10 @@ Preprocessed and intermediate files required for analysis. Data downloaded from 
 
 Contains `figures.ipynb`, which generates all manuscript figures.
 
+### `analysis/`
+
+Please see [analysis/readme.md]([https://figshare.com/your-dataset-link](https://github.com/MouseLand/eye-vs-face/tree/main/analysis#readme) for details on running notebook code and estimated time for each notebook.
+
 ### `analysis/code/` (< 15 min)
 
 Reusable Python modules:
@@ -129,7 +133,7 @@ python filename.py
 
 ### `analysis/notebooks/` 
 
-Please see analysis/readme.md for details on running notebook code and estimated time for each notebook. Main analysis and modeling notebooks:
+Main analysis and modeling notebooks:
 
 * `generate_svds.ipynb`
 * `geom_to_deg_saccade.ipynb`
